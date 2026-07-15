@@ -1,6 +1,6 @@
 # StudyMate AI HUB — Project Progress Tracker
 
-**Total Tasks:** 21 | **Completed:** 11 | **In Progress:** 0 | **Pending:** 10
+**Total Tasks:** 21 | **Completed:** 20 | **In Progress:** 0 | **Pending:** 1
 
 ---
 
@@ -27,27 +27,27 @@
 ## Phase 3: Backend Utilities
 
 | # | Task | Priority | Status | Notes |
-|---|---|---|---|---|
-| 11 | Implement History & Session Management | High | ⬜ Pending | |
-| 12 | Implement PDF Export system | High | ⬜ Pending | |
-| 13 | Implement API Key Management | Medium | ⬜ Pending | |
+|---|---|---|---|---|---|
+| 11 | Implement History & Session Management | High | ✅ Completed | GET list/detail, DELETE, file/pdf download, feature filter |
+| 12 | Implement PDF Export system | High | ✅ Completed | ReportLab templates for all 5 features, POST /api/v1/export/pdf + history/{id}/pdf |
+| 13 | Implement API Key Management | Medium | ✅ Completed | GET/POST/DELETE with AES-256-GCM encryption, masked responses |
 
 ## Phase 4: Frontend Development
 
 | # | Task | Priority | Status | Notes |
-|---|---|---|---|---|
-| 14 | Build frontend - Core layout (navbar, sidebar, footer, theme) | High | ⬜ Pending | |
-| 15 | Build frontend - Auth pages (login, register, forgot/reset password) | High | ⬜ Pending | |
-| 16 | Build frontend - Feature pages (notes, flashcards, quiz, mindmap, revision) | High | ⬜ Pending | |
-| 17 | Build frontend - Profile page | Medium | ⬜ Pending | |
-| 18 | Build frontend - History page | Medium | ⬜ Pending | |
-| 19 | Build frontend - Landing, Features, About pages | Medium | ⬜ Pending | |
+|---|---|---|---|---|---|
+| 14 | Build frontend - Core layout (navbar, sidebar, footer, theme) | High | ✅ Completed | Tailwind CSS v4 CDN, custom styles.css with 6 themes, responsive navbar, mobile hamburger menu |
+| 15 | Build frontend - Auth pages (login, register, forgot/reset password) | High | ✅ Completed | Login (email+Google OAuth), Register, Forgot Password (OTP flow), Reset Password |
+| 16 | Build frontend - Feature pages (notes, flashcards, quiz, mindmap, revision) | High | ✅ Completed | SSE streaming for notes/revision, flashcard flip animation, quiz scoring, canvas mind map, PDF download buttons |
+| 17 | Build frontend - Profile page | Medium | ✅ Completed | Profile edit, usage stats, theme picker (6 presets), API key management |
+| 18 | Build frontend - History page | Medium | ✅ Completed | History list with feature filter, detail view, file download, PDF export, delete |
+| 19 | Build frontend - Landing, Features, About pages | Medium | ✅ Completed | Landing with hero + feature cards, features detail page, about page |
 
 ## Phase 5: Quality & Deployment
 
 | # | Task | Priority | Status | Notes |
 |---|---|---|---|---|
-| 20 | Implement testing (pytest, Playwright E2E) | Medium | ✅ Completed | 45 tests: security (14), auth service (12), file parser (7), API (12). Fixed bcrypt+crypto compat bugs |
+| 20 | Implement testing (pytest, Playwright E2E) | Medium | ✅ Completed | 71 tests: security (14), auth service (12), file parser (7), API (12), history (12), profile (7), export (6), email (2) |
 | 21 | Configure deployment (Docker, CI/CD) | Medium | ⬜ Pending | |
 
 ---
@@ -62,3 +62,10 @@
 ---
 
 *Last updated: July 15, 2026*
+
+---
+## What's Next — Phase 5: Quality & Deployment
+
+| # | Task | Priority | Status |
+|---|---|---|---|
+| 21 | Configure deployment (Docker, CI/CD) | Medium | ⬜ Pending |

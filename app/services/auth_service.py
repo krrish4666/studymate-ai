@@ -20,6 +20,7 @@ from app.core.exceptions import (
     UnauthorizedError,
 )
 from app.models.user import User, Account, VerificationToken
+from app.services.email_service import email_service
 
 
 class AuthService:
@@ -176,6 +177,7 @@ class AuthService:
         self.db.add(vt)
         await self.db.flush()
 
+        await email_service.send_otp(email, otp)
         return otp
 
     async def verify_otp(self, email: str, otp: str) -> str:

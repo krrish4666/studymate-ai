@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="warm-light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>History — StudyMate AI HUB</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header>
+    <nav class="navbar">
+      <a href="/" class="logo">StudyMate AI</a>
+      <ul class="nav-links">
+        <li><a href="/feature/notes">Notes</a></li>
+        <li><a href="/feature/flashcards">Flashcards</a></li>
+        <li><a href="/feature/quiz">Quiz</a></li>
+        <li><a href="/feature/mindmap">Mind Map</a></li>
+        <li><a href="/feature/revision">Revision</a></li>
+        <li><a href="/profile">Profile</a></li>
+      </ul>
+      <div id="auth-ui" class="nav-actions"></div>
+      <button class="mobile-menu-toggle" aria-label="Menu">&#9776;</button>
+    </nav>
+  </header>
+
+  <main class="page-container">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
+      <h1>Session History</h1>
+      <div>
+        <select id="history-filter" class="form-input" style="width:auto;min-width:160px;">
+          <option value="">All Features</option>
+          <option value="notes">Notes</option>
+          <option value="flashcards">Flashcards</option>
+          <option value="quiz">Quiz</option>
+          <option value="mindmap">Mind Map</option>
+          <option value="revision">Revision</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+      <div id="history-list"></div>
+      <div id="history-detail"></div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { requireAuth } from '/static/js/auth.js';
+    import { initHistory } from '/static/js/pages/history.js';
+    if (requireAuth()) initHistory();
+  </script>
+  <script type="module" src="/static/js/main.js"></script>
+</body>
+</html>

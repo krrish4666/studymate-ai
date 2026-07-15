@@ -1,0 +1,60 @@
+You are continuing work on StudyMate AI HUB v2.0, an academic productivity web app. The repo is already initialized with a complete backend foundation. Do NOT modify any existing files unless explicitly instructed. Only add new files or make minimal edits as needed.
+Current State (Source of Truth)
+- Git: master branch, commit 092aaa4 — "Initial commit: StudyMate AI HUB v2.0"
+- Tests: 45/45 passing (run pytest tests/ -v to verify)
+- Python venv: .venv\Scripts\python (Windows) or .venv/bin/python (Linux/Mac)
+What's Already Built
+Area	Status	Details
+Project scaffold	✅ Done	Layered app/ structure, pyproject.toml, .pre-commit-config.yaml
+Backend core	✅ Done	main.py (FastAPI + CORS), config.py (pydantic-settings), database.py (async engine)
+DB schema	✅ Done	7 models + Alembic initial migration
+Auth	✅ Done	Register, login, Google OAuth, password reset (OTP), JWT, bcrypt, AES-256-GCM
+File upload	✅ Done	S3/local storage, parser for PDF/DOCX/PPTX/TXT/IMG, MIME validation
+AI: Notes	✅ Done	SSE streaming, compact/detailed modes
+AI: Flashcards	✅ Done	JSON response, 10-15 cards
+AI: MCQ Quiz	✅ Done	Configurable difficulty + count
+AI: Mind Map	✅ Done	Hierarchical JSON, up to 3 levels
+AI: Revision	✅ Done	SSE streaming, max 600 words
+Testing	✅ Done	Security, auth service, file parser, API endpoint tests
+Project Structure
+app/
+├── main.py              # FastAPI app entry
+├── config.py            # pydantic-settings
+├── database.py          # async engine + session
+├── api/
+│   ├── deps.py          # get_current_user dependency
+│   └── v1/
+│       ├── auth.py      # 7 auth endpoints
+│       ├── upload.py    # file upload endpoint
+│       └── features.py  # 5 AI feature endpoints
+├── core/
+│   ├── security.py      # bcrypt, JWT, AES-256-GCM
+│   └── exceptions.py    # typed HTTP exceptions
+├── models/              # 7 SQLAlchemy models
+├── schemas/             # Pydantic v2 schemas
+└── services/
+    ├── auth_service.py
+    ├── storage_service.py  # S3 + local fallback
+    ├── file_parser.py      # PDF/DOCX/PPTX/TXT/IMG
+    └── gemini_service.py   # Gemini AI integration
+Key Conventions
+- Async everything: async def endpoints, AsyncSession, await db.execute()
+- Services layer: Business logic in app/services/, route handlers in app/api/v1/
+- Auth: JWT via Authorization: Bearer <token> header, injected via Depends(get_current_user)
+- API prefix: All routes under /api/v1/
+- API keys: User's Gemini key resolved from api_keys table (encrypted), falls back to empty string
+- Testing: pytest with mocked AsyncSession + TestClient with dependency overrides
+What Remains (Phase 3+)
+Task	Priority	File hints
+History & Session Management	High	GET /api/v1/history, GET /api/v1/history/{id}, DELETE /api/v1/history/{id}, file/pdf download
+PDF Export	High	POST /api/v1/export/pdf, ReportLab templates per feature
+API Key Management	Medium	GET/POST/DELETE /api/v1/profile/api-keys
+Frontend (all static pages)	High	/static/pages/, /static/js/, /static/css/
+Docker/CI-CD	Medium	Dockerfile, GitHub Actions
+Critical Rules
+1. NEVER touch existing files unless the task explicitly requires it
+2. Always run pytest tests/ after any changes — all 45 must pass
+3. Use cd into the repo root before running commands
+4. Activate venv: .venv\Scripts\activate (Windows) or source .venv/bin/activate (Unix)
+5. Follow existing patterns — same naming, same architecture, same error handling
+6. If unsure, read the relevant existing file first before writing new code

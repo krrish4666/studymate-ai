@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="warm-light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile — StudyMate AI HUB</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header>
+    <nav class="navbar">
+      <a href="/" class="logo">StudyMate AI</a>
+      <ul class="nav-links">
+        <li><a href="/feature/notes">Notes</a></li>
+        <li><a href="/feature/flashcards">Flashcards</a></li>
+        <li><a href="/feature/quiz">Quiz</a></li>
+        <li><a href="/feature/mindmap">Mind Map</a></li>
+        <li><a href="/feature/revision">Revision</a></li>
+        <li><a href="/history">History</a></li>
+      </ul>
+      <div id="auth-ui" class="nav-actions"></div>
+      <button class="mobile-menu-toggle" aria-label="Menu">&#9776;</button>
+    </nav>
+  </header>
+
+  <main class="page-container">
+    <h1 style="margin-bottom:24px;">Profile Settings</h1>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+      <div>
+        <div class="card" style="margin-bottom:24px;">
+          <h2 style="margin-bottom:16px;">Account Info</h2>
+          <p><strong>Name:</strong> <span id="profile-name"></span></p>
+          <p><strong>Email:</strong> <span id="profile-email"></span></p>
+        </div>
+
+        <div class="card" style="margin-bottom:24px;">
+          <h2 style="margin-bottom:16px;">Edit Profile</h2>
+          <form id="profile-form">
+            <div class="form-group">
+              <label for="edit-name">Display Name</label>
+              <input type="text" id="edit-name" class="form-input">
+            </div>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2 style="margin-bottom:16px;">Usage Statistics</h2>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="stat-card card">
+              <div class="value" id="stats-files">0</div>
+              <div class="label">Files Processed</div>
+            </div>
+            <div class="stat-card card">
+              <div class="value" id="stats-sessions">0</div>
+              <div class="label">Sessions</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card" style="margin-bottom:24px;">
+          <h2 style="margin-bottom:16px;">Theme</h2>
+          <div id="theme-grid" class="theme-grid"></div>
+        </div>
+
+        <div class="card">
+          <h2 style="margin-bottom:16px;">API Keys</h2>
+          <p style="color:var(--color-muted-text);font-size:0.85rem;margin-bottom:16px;">
+            Add your Google Gemini API key to enable AI features.
+          </p>
+          <div id="api-keys-list" style="margin-bottom:16px;"></div>
+          <form id="api-key-form">
+            <div class="form-group">
+              <label for="key-provider">Provider</label>
+              <select id="key-provider" class="form-input">
+                <option value="gemini">Google Gemini</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="key-value">API Key</label>
+              <input type="password" id="key-value" class="form-input" placeholder="Enter your API key" required>
+            </div>
+            <div class="form-group">
+              <label for="key-label">Label (optional)</label>
+              <input type="text" id="key-label" class="form-input" placeholder="e.g. My Gemini Key">
+            </div>
+            <button type="submit" class="btn btn-primary">Add API Key</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { requireAuth } from '/static/js/auth.js';
+    import { initProfile } from '/static/js/pages/profile.js';
+    if (requireAuth()) initProfile();
+  </script>
+  <script type="module" src="/static/js/main.js"></script>
+</body>
+</html>

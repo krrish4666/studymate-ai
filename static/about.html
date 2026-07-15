@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="warm-light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About — StudyMate AI HUB</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header>
+    <nav class="navbar">
+      <a href="/" class="logo">StudyMate AI</a>
+      <ul class="nav-links">
+        <li><a href="/features">Features</a></li>
+        <li><a href="/about">About</a></li>
+      </ul>
+      <div id="auth-ui" class="nav-actions">
+        <a href="/login" class="btn btn-ghost btn-sm">Sign In</a>
+        <a href="/register" class="btn btn-primary btn-sm">Get Started</a>
+      </div>
+      <button class="mobile-menu-toggle" aria-label="Menu">&#9776;</button>
+    </nav>
+  </header>
+
+  <main class="page-container-md">
+    <h1 style="text-align:center;margin-bottom:16px;">About StudyMate AI HUB</h1>
+    <p style="text-align:center;color:var(--color-muted-text);margin-bottom:40px;">Transforming how students learn with AI-powered tools</p>
+
+    <div class="card" style="margin-bottom:24px;">
+      <h2>Our Mission</h2>
+      <p style="color:var(--color-muted-text);margin-top:8px;line-height:1.7;">
+        StudyMate AI HUB is an academic productivity web application that transforms raw study materials — 
+        including textbooks, PDFs, lecture slides, notes, and images — into structured, interactive learning formats. 
+        We leverage Google Gemini AI to generate notes, flashcards, mind maps, MCQ quizzes, and revision cheat sheets, 
+        making studying more efficient and effective.
+      </p>
+    </div>
+
+    <div class="card" style="margin-bottom:24px;">
+      <h2>Technology</h2>
+      <p style="color:var(--color-muted-text);margin-top:8px;line-height:1.7;">
+        Built with a Python/FastAPI backend and a vanilla HTML/CSS/JS frontend. 
+        Uses Google Gemini AI for content generation, PostgreSQL for data storage, 
+        and ReportLab for PDF generation. The application supports multiple file formats 
+        including PDF, DOCX, PPTX, TXT, and images.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>Key Capabilities</h2>
+      <ul style="color:var(--color-muted-text);margin-top:8px;padding-left:20px;line-height:2;">
+        <li>AI-powered notes conversion with real-time streaming</li>
+        <li>Interactive flashcard generation and review</li>
+        <li>Configurable MCQ quizzes with instant scoring</li>
+        <li>Interactive mind map visualization</li>
+        <li>Concise revision cheat sheets</li>
+        <li>PDF export for all content types</li>
+        <li>Secure authentication with JWT and Google OAuth</li>
+        <li>Personalized theme system with 6 presets</li>
+      </ul>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>&copy; 2026 StudyMate AI HUB. Powered by Google Gemini AI.</p>
+  </footer>
+
+  <script type="module" src="/static/js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="warm-light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Features — StudyMate AI HUB</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header>
+    <nav class="navbar">
+      <a href="/" class="logo">StudyMate AI</a>
+      <ul class="nav-links">
+        <li><a href="/features">Features</a></li>
+        <li><a href="/about">About</a></li>
+      </ul>
+      <div id="auth-ui" class="nav-actions">
+        <a href="/login" class="btn btn-ghost btn-sm">Sign In</a>
+        <a href="/register" class="btn btn-primary btn-sm">Get Started</a>
+      </div>
+      <button class="mobile-menu-toggle" aria-label="Menu">&#9776;</button>
+    </nav>
+  </header>
+
+  <main class="page-container">
+    <h1 style="text-align:center;margin-bottom:8px;">All Features</h1>
+    <p style="text-align:center;color:var(--color-muted-text);margin-bottom:40px;">Everything you need to study smarter</p>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;">
+      <div class="card">
+        <div style="font-size:2rem;margin-bottom:8px;">&#128221;</div>
+        <h3>Notes Conversion</h3>
+        <p style="color:var(--color-muted-text);font-size:0.9rem;margin:8px 0 16px;">Upload PDFs, docs, or lecture slides and get AI-generated structured markdown notes. Choose between compact and detailed modes.</p>
+        <ul style="font-size:0.85rem;color:var(--color-muted-text);padding-left:16px;">
+          <li>Real-time SSE streaming</li>
+          <li>Compact & detailed modes</li>
+          <li>Markdown formatting</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div style="font-size:2rem;margin-bottom:8px;">&#127911;</div>
+        <h3>Flashcards</h3>
+        <p style="color:var(--color-muted-text);font-size:0.9rem;margin:8px 0 16px;">Transform study material into interactive Q&A flashcards with flip animation. Navigate and review at your own pace.</p>
+        <ul style="font-size:0.85rem;color:var(--color-muted-text);padding-left:16px;">
+          <li>10-15 cards per session</li>
+          <li>CSS flip animation</li>
+          <li>Previous/Next navigation</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div style="font-size:2rem;margin-bottom:8px;">&#128221;</div>
+        <h3>MCQ Quizzes</h3>
+        <p style="color:var(--color-muted-text);font-size:0.9rem;margin:8px 0 16px;">Test your knowledge with AI-generated multiple choice questions. Configurable difficulty and question count.</p>
+        <ul style="font-size:0.85rem;color:var(--color-muted-text);padding-left:16px;">
+          <li>Easy/Medium/Hard difficulty</li>
+          <li>Immediate scoring</li>
+          <li>Answer review</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div style="font-size:2rem;margin-bottom:8px;">&#129504;</div>
+        <h3>Mind Maps</h3>
+        <p style="color:var(--color-muted-text);font-size:0.9rem;margin:8px 0 16px;">Visualize complex topics with interactive, zoomable mind maps. Up to 3 levels of hierarchical depth.</p>
+        <ul style="font-size:0.85rem;color:var(--color-muted-text);padding-left:16px;">
+          <li>HTML5 Canvas rendering</li>
+          <li>Pan & zoom controls</li>
+          <li>3 levels of depth</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div style="font-size:2rem;margin-bottom:8px;">&#128203;</div>
+        <h3>Revision Cheat Sheets</h3>
+        <p style="color:var(--color-muted-text);font-size:0.9rem;margin:8px 0 16px;">Get concise, focused revision notes (max 600 words) perfect for last-minute exam preparation.</p>
+        <ul style="font-size:0.85rem;color:var(--color-muted-text);padding-left:16px;">
+          <li>Max 600 words</li>
+          <li>Real-time SSE streaming</li>
+          <li>2-column layout format</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div style="font-size:2rem;margin-bottom:8px;">&#128196;</div>
+        <h3>PDF Export</h3>
+        <p style="color:var(--color-muted-text);font-size:0.9rem;margin:8px 0 16px;">Export any generated content as a professionally formatted PDF document.</p>
+        <ul style="font-size:0.85rem;color:var(--color-muted-text);padding-left:16px;">
+          <li>Feature-specific templates</li>
+          <li>Server-side ReportLab generation</li>
+          <li>Download from history</li>
+        </ul>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>&copy; 2026 StudyMate AI HUB. Powered by Google Gemini AI.</p>
+  </footer>
+
+  <script type="module" src="/static/js/main.js"></script>
+</body>
+</html>

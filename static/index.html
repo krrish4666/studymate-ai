@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="warm-light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudyMate AI HUB — Academic Productivity</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tailwindcss/typography@0.5.16/src/index.min.css">
+  <link rel="stylesheet" href="/static/css/styles.css">
+  <script src="https://unpkg.com/lucide@latest" defer></script>
+</head>
+<body>
+  <header>
+    <nav class="navbar">
+      <a href="/" class="logo">StudyMate AI</a>
+      <ul class="nav-links">
+        <li><a href="/features">Features</a></li>
+        <li><a href="/about">About</a></li>
+      </ul>
+      <div id="auth-ui" class="nav-actions">
+        <a href="/login" class="btn btn-ghost btn-sm">Sign In</a>
+        <a href="/register" class="btn btn-primary btn-sm">Get Started</a>
+      </div>
+      <button class="mobile-menu-toggle" aria-label="Menu">&#9776;</button>
+    </nav>
+  </header>
+
+  <main>
+    <section style="text-align:center;padding:80px 24px 60px;max-width:800px;margin:0 auto;">
+      <h1 style="font-size:3rem;margin-bottom:16px;">Study Smarter with AI</h1>
+      <p style="font-size:1.15rem;color:var(--color-muted-text);margin-bottom:32px;max-width:600px;margin-left:auto;margin-right:auto;">
+        Transform your notes, PDFs, and lecture slides into interactive flashcards, quizzes, mind maps, and more — powered by Google Gemini AI.
+      </p>
+      <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;">
+        <a href="/register" class="btn btn-primary btn-lg">Get Started Free</a>
+        <a href="/features" class="btn btn-secondary btn-lg">Explore Features</a>
+      </div>
+    </section>
+
+    <section class="page-container">
+      <div class="grid grid-3" style="gap:24px;">
+        <div class="card" style="text-align:center;">
+          <div style="font-size:2.5rem;margin-bottom:12px;">&#128221;</div>
+          <h3>Smart Notes</h3>
+          <p style="color:var(--color-muted-text);font-size:0.9rem;">Convert files into structured markdown notes with AI</p>
+        </div>
+        <div class="card" style="text-align:center;">
+          <div style="font-size:2.5rem;margin-bottom:12px;">&#127911;</div>
+          <h3>Flashcards</h3>
+          <p style="color:var(--color-muted-text);font-size:0.9rem;">Generate Q&A flashcards from any study material</p>
+        </div>
+        <div class="card" style="text-align:center;">
+          <div style="font-size:2.5rem;margin-bottom:12px;">&#128221;</div>
+          <h3>MCQ Quizzes</h3>
+          <p style="color:var(--color-muted-text);font-size:0.9rem;">Test yourself with AI-generated multiple choice questions</p>
+        </div>
+        <div class="card" style="text-align:center;">
+          <div style="font-size:2.5rem;margin-bottom:12px;">&#129504;</div>
+          <h3>Mind Maps</h3>
+          <p style="color:var(--color-muted-text);font-size:0.9rem;">Visualize concepts with interactive hierarchical mind maps</p>
+        </div>
+        <div class="card" style="text-align:center;">
+          <div style="font-size:2.5rem;margin-bottom:12px;">&#128203;</div>
+          <h3>Revision Sheets</h3>
+          <p style="color:var(--color-muted-text);font-size:0.9rem;">Get concise cheat sheets for quick exam revision</p>
+        </div>
+        <div class="card" style="text-align:center;">
+          <div style="font-size:2.5rem;margin-bottom:12px;">&#128196;</div>
+          <h3>PDF Export</h3>
+          <p style="color:var(--color-muted-text);font-size:0.9rem;">Export any content as beautifully formatted PDFs</p>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <p>&copy; 2026 StudyMate AI HUB. Powered by Google Gemini AI.</p>
+    </footer>
+  </main>
+
+  <script type="module" src="/static/js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="warm-light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notes — StudyMate AI HUB</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header>
+    <nav class="navbar">
+      <a href="/" class="logo">StudyMate AI</a>
+      <ul class="nav-links">
+        <li><a href="/feature/flashcards">Flashcards</a></li>
+        <li><a href="/feature/quiz">Quiz</a></li>
+        <li><a href="/feature/mindmap">Mind Map</a></li>
+        <li><a href="/feature/revision">Revision</a></li>
+        <li><a href="/history">History</a></li>
+        <li><a href="/profile">Profile</a></li>
+      </ul>
+      <div id="auth-ui" class="nav-actions"></div>
+      <button class="mobile-menu-toggle" aria-label="Menu">&#9776;</button>
+    </nav>
+  </header>
+
+  <main class="page-container">
+    <h1 style="margin-bottom:8px;">Notes Generator</h1>
+    <p style="color:var(--color-muted-text);margin-bottom:24px;">Upload study material and get AI-powered structured notes</p>
+
+    <section class="upload-area">
+      <div class="upload-zone" id="dropzone">
+        <div class="icon">&#128196;</div>
+        <p>Drag & drop files here or click to browse</p>
+        <p style="font-size:0.8rem;margin-top:8px;">PDF, DOCX, PPTX, TXT, JPG, PNG, WebP (max 25 MB)</p>
+        <input type="file" id="file-input" hidden accept=".pdf,.docx,.pptx,.txt,.jpg,.jpeg,.png,.webp">
+      </div>
+      <div id="upload-progress" class="progress-bar" hidden><div class="fill" style="width:0%"></div></div>
+    </section>
+
+    <div style="display:flex;gap:12px;align-items:center;margin-top:20px;flex-wrap:wrap;">
+      <select id="notes-mode" class="form-input" style="width:auto;">
+        <option value="detailed">Detailed</option>
+        <option value="compact">Compact</option>
+      </select>
+      <button class="btn btn-primary" id="generate-btn" hidden>Generate Notes</button>
+      <button class="btn btn-secondary btn-sm" id="download-pdf" hidden>Download PDF</button>
+    </div>
+
+    <section id="feature-output" class="feature-output"></section>
+  </main>
+
+  <script type="module">
+    import { requireAuth } from '/static/js/auth.js';
+    import { initNotes } from '/static/js/features/notes.js';
+    if (requireAuth()) initNotes();
+  </script>
+  <script type="module" src="/static/js/main.js"></script>
+</body>
+</html>
