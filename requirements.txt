@@ -1,0 +1,50 @@
+# Core
+fastapi[standard]>=0.115.0
+uvicorn[standard]>=0.34.0
+
+# Database
+sqlalchemy[asyncio]>=2.0.0
+alembic>=1.14.0
+asyncpg>=0.30.0
+
+# Validation & Config
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# Auth & Security
+python-jose[cryptography]>=3.4.0
+passlib[bcrypt]>=1.7.4
+authlib>=1.4.0
+cryptography>=44.0.0
+
+# AI
+google-generativeai>=0.8.0
+
+# File Processing
+PyMuPDF>=1.25.0
+python-docx>=1.1.0
+python-pptx>=1.0.0
+Pillow>=11.1.0
+python-magic>=0.4.0
+
+# PDF Generation
+reportlab>=4.3.0
+weasyprint>=3.1.0
+
+# Storage
+boto3>=1.36.0
+
+# Email
+fastapi-mail>=1.4.0
+
+# HTTP & Forms
+python-multipart>=0.0.18
+httpx>=0.28.0
+
+# Dev
+ruff>=0.11.0
+mypy>=1.15.0
+pytest>=8.3.0
+pytest-asyncio>=0.26.0
+pytest-cov>=6.1.0
+pre-commit>=4.2.0
