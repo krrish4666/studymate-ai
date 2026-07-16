@@ -1,5 +1,5 @@
 import { apiPost } from '../api.js';
-import { showToast, $, hide, show } from '../utils.js';
+import { showToast, $, hide, show } from '../utils.js?v=7';
 
 export async function initMindmap() {
   const fileId = new URLSearchParams(location.search).get('historyId');
@@ -18,34 +18,100 @@ export async function initMindmap() {
   generateBtn?.addEventListener('click', async () => {
     if (isGenerating) return;
     const fileRecordId = StudyMateUpload.getCurrentFileId();
-    if (!fileRecordId) return;
+    if (!fileRecordId) {
+      showToast('Please select a file first', 'error');
+      return;
+    }
 
     isGenerating = true;
     generateBtn.disabled = true;
+    const originalBtnText = generateBtn.textContent;
+    generateBtn.textContent = 'Generating Mindmap...';
+
+    const fileStatus = document.getElementById('file-status') || (document.getElementById('file-info') && document.getElementById('file-info').querySelector('.file-status'));
+    if (fileStatus) {
+      fileStatus.textContent = 'Generating mind map structure...';
+      fileStatus.className = 'file-status info';
+    }
+
     hide(output);
-    show(loadingScreen);
+    show(loadingScreen, 'block');
+    if (loadingScreen) {
+      loadingScreen.hidden = false;
+      loadingScreen.style.display = 'block';
+    }
 
     try {
       const res = await apiPost('/features/mindmap', { fileRecordId });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: 'Generation failed' }));
+        const errDetail = err.detail || 'Generation failed';
         hide(loadingScreen);
-        show(output);
-        output.innerHTML = `<div class="card" style="padding:40px;text-align:center;"><p style="color:var(--color-error)">${err.detail}</p></div>`;
+        show(output, 'block');
+        if (output) {
+          output.hidden = false;
+          output.style.display = 'block';
+        }
+        output.innerHTML = `<div class="card" style="padding:40px;text-align:center;"><p style="color:var(--color-error);font-weight:600;font-size:1.1rem;">${errDetail}</p></div>`;
+        showToast(errDetail, 'error');
+        if (fileStatus) {
+          fileStatus.textContent = 'Generation failed';
+          fileStatus.className = 'file-status error';
+        }
+        generateBtn.disabled = false;
+        generateBtn.textContent = originalBtnText || 'Generate Mindmap';
+        isGenerating = false;
         return;
       }
       const data = await res.json();
       currentMindmap = data.mindmap;
+      if (!currentMindmap) {
+        hide(loadingScreen);
+        show(output, 'block');
+        if (output) {
+          output.hidden = false;
+          output.style.display = 'block';
+        }
+        output.innerHTML = '<p style="color:var(--color-muted-text);text-align:center;padding:40px;">No mindmap generated</p>';
+        if (fileStatus) {
+          fileStatus.textContent = 'No mindmap generated';
+          fileStatus.className = 'file-status error';
+        }
+        generateBtn.disabled = false;
+        generateBtn.textContent = originalBtnText || 'Generate Mindmap';
+        isGenerating = false;
+        return;
+      }
       hide(loadingScreen);
-      show(output);
+      show(output, 'block');
+      if (output) {
+        output.hidden = false;
+        output.style.display = 'block';
+      }
+      if (fileStatus) {
+        fileStatus.textContent = 'Mindmap generated successfully';
+        fileStatus.className = 'file-status success';
+      }
+      showToast('Mindmap generated successfully!', 'success');
       renderMindmap(currentMindmap);
       show(downloadBtn);
     } catch (err) {
       hide(loadingScreen);
-      show(output);
-      output.innerHTML = `<p style="color:var(--color-error)">${err.message}</p>`;
+      show(output, 'block');
+      if (output) {
+        output.hidden = false;
+        output.style.display = 'block';
+      }
+      const errMsg = err.message || 'Generation error';
+      output.innerHTML = `<div class="card" style="padding:40px;text-align:center;"><p style="color:var(--color-error);font-weight:600;font-size:1.1rem;">${errMsg}</p></div>`;
+      showToast(errMsg, 'error');
+      if (fileStatus) {
+        fileStatus.textContent = 'Generation failed';
+        fileStatus.className = 'file-status error';
+      }
     } finally {
       generateBtn.disabled = false;
+      generateBtn.textContent = originalBtnText || 'Generate Mindmap';
       isGenerating = false;
     }
   });
@@ -153,9 +219,9 @@ function renderMindmap(root) {
 
     const color = getColor(depth);
     const grad = ctx.createRadialGradient(x, y, 0, x, y, sz.r * scale);
-    grad.addColorStop(0, color + '33');
-    grad.addColorStop(0.7, color + '22');
-    grad.addColorStop(1, color + '11');
+    grad.addColorStop(0, getColor(depth, 0.35));
+    grad.addColorStop(0.7, getColor(depth, 0.15));
+    grad.addColorStop(1, getColor(depth, 0.05));
 
     ctx.beginPath();
     ctx.arc(x, y, sz.r * scale, 0, Math.PI * 2);
