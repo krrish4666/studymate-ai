@@ -9,9 +9,11 @@ from app.database import get_db
 from app.api.deps import get_current_user
 from app.models.user import User
 from app.models.file_record import FileRecord
+from app.models.document_cache import DocumentCache
 from app.schemas.file import FileUploadResponse
 from app.core.exceptions import UnsupportedMediaError, TooLargeError
 from app.services.storage_service import storage_service
+from app.services.file_parser import file_parser
 from app.config import settings
 
 router = APIRouter(prefix="/upload", tags=["Upload"])
@@ -20,7 +22,7 @@ router = APIRouter(prefix="/upload", tags=["Upload"])
 @router.post("", response_model=FileUploadResponse)
 async def upload_file(
     file: UploadFile = File(...),
-    feature: str = Form(...),
+    feature: str = Form("general"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -48,6 +50,17 @@ async def upload_file(
     db.add(file_record)
     await db.flush()
     await db.refresh(file_record)
+
+    try:
+        extracted_text = file_parser.extract_text(file_data, file.filename)
+        cache = DocumentCache(
+            fileRecordId=file_record.id,
+            extractedText=extracted_text,
+        )
+        db.add(cache)
+        await db.flush()
+    except Exception:
+        pass
 
     return FileUploadResponse(
         fileRecordId=str(file_record.id),

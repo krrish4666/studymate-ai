@@ -1,87 +1,131 @@
 import { apiPost } from '../api.js';
-import { initUpload } from '../upload.js';
-import { showToast, $, $$ } from '../utils.js';
+import { showToast, $, hide, show } from '../utils.js';
 
 export async function initFlashcards() {
   const fileId = new URLSearchParams(location.search).get('historyId');
   if (fileId) return loadHistoryFlashcards(fileId);
 
-  const dropzone = document.getElementById('dropzone');
-  const fileInput = document.getElementById('file-input');
-  const progress = document.getElementById('upload-progress');
   const output = document.getElementById('feature-output');
   const generateBtn = document.getElementById('generate-btn');
+  const loadingScreen = document.getElementById('loading-screen');
+  const downloadBtn = document.getElementById('download-pdf');
 
-  let currentFileRecordId = null;
   let flashcards = [];
   let currentIndex = 0;
+  let isFlipped = false;
+  let isGenerating = false;
 
-  initUpload(dropzone, fileInput, progress, 'flashcards');
+  StudyMateUpload.init();
 
   generateBtn?.addEventListener('click', async () => {
-    if (!currentFileRecordId) return;
+    if (isGenerating) return;
+    const fileRecordId = StudyMateUpload.getCurrentFileId();
+    if (!fileRecordId) return;
+
+    isGenerating = true;
     generateBtn.disabled = true;
-    output.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Generating flashcards...</p></div>';
+    hide(output);
+    show(loadingScreen);
 
     try {
-      const res = await apiPost('/features/flashcards', { fileRecordId: currentFileRecordId });
+      const res = await apiPost('/features/flashcards', { fileRecordId });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: 'Generation failed' }));
-        output.innerHTML = `<p style="color:var(--color-error)">${err.detail}</p>`;
+        hide(loadingScreen);
+        show(output);
+        output.innerHTML = `<div class="card" style="padding:40px;text-align:center;"><p style="color:var(--color-error)">${err.detail}</p></div>`;
         return;
       }
       const data = await res.json();
       flashcards = data.flashcards || [];
       if (flashcards.length === 0) {
-        output.innerHTML = '<p style="color:var(--color-muted-text)">No flashcards generated</p>';
+        hide(loadingScreen);
+        show(output);
+        output.innerHTML = '<p style="color:var(--color-muted-text);text-align:center;padding:40px;">No flashcards generated</p>';
         return;
       }
       currentIndex = 0;
+      isFlipped = false;
+      hide(loadingScreen);
+      show(output);
+      show(downloadBtn);
       renderFlashcard();
     } catch (err) {
+      hide(loadingScreen);
+      show(output);
       output.innerHTML = `<p style="color:var(--color-error)">${err.message}</p>`;
     } finally {
       generateBtn.disabled = false;
+      isGenerating = false;
     }
   });
 
   function renderFlashcard() {
+    if (!flashcards.length) return;
     const fc = flashcards[currentIndex];
-    output.innerHTML = `
-      <div style="text-align:center;margin-bottom:16px;">
-        <span style="color:var(--color-muted-text);font-size:0.85rem;">Card ${currentIndex + 1} of ${flashcards.length}</span>
-      </div>
-      <div class="flashcard" onclick="this.classList.toggle('flipped')">
-        <div class="flashcard-inner">
-          <div class="flashcard-front">
-            <span class="label">Question</span>
-            <p style="font-size:1.1rem;">${fc.question}</p>
-          </div>
-          <div class="flashcard-back">
-            <span class="label">Answer</span>
-            <p style="font-size:1.1rem;">${fc.answer}</p>
-          </div>
-        </div>
-      </div>
-      <div style="display:flex;justify-content:center;gap:12px;margin-top:20px;">
-        <button class="btn btn-secondary btn-sm" id="prev-card" ${currentIndex === 0 ? 'disabled' : ''}>Previous</button>
-        <button class="btn btn-secondary btn-sm" id="next-card" ${currentIndex === flashcards.length - 1 ? 'disabled' : ''}>Next</button>
-      </div>
-      <div style="display:flex;justify-content:center;gap:12px;margin-top:12px;">
-        <button class="btn btn-primary btn-sm" id="download-flashcards-pdf">Download PDF</button>
-      </div>
-    `;
+    if (!fc) return;
 
-    document.getElementById('prev-card')?.addEventListener('click', () => {
-      if (currentIndex > 0) { currentIndex--; renderFlashcard(); }
-    });
-    document.getElementById('next-card')?.addEventListener('click', () => {
-      if (currentIndex < flashcards.length - 1) { currentIndex++; renderFlashcard(); }
-    });
-    document.getElementById('download-flashcards-pdf')?.addEventListener('click', downloadPdf);
+    document.getElementById('flashcard-progress').textContent = `Card ${currentIndex + 1} of ${flashcards.length}`;
+    document.getElementById('card-question').textContent = fc.question || 'No question';
+    document.getElementById('card-answer').textContent = fc.answer || 'No answer';
+
+    const flashcard = document.getElementById('flashcard');
+    flashcard.classList.remove('flipped');
+    isFlipped = false;
+
+    document.getElementById('prev-card').disabled = currentIndex === 0;
+    document.getElementById('next-card').disabled = currentIndex === flashcards.length - 1;
   }
 
-  async function downloadPdf() {
+  document.getElementById('flip-card')?.addEventListener('click', () => {
+    const flashcard = document.getElementById('flashcard');
+    isFlipped = !isFlipped;
+    flashcard.classList.toggle('flipped');
+  });
+
+  document.getElementById('prev-card')?.addEventListener('click', () => {
+    if (currentIndex > 0) {
+      currentIndex--;
+      renderFlashcard();
+    }
+  });
+
+  document.getElementById('next-card')?.addEventListener('click', () => {
+    if (currentIndex < flashcards.length - 1) {
+      currentIndex++;
+      renderFlashcard();
+    }
+  });
+
+  document.getElementById('shuffle-btn')?.addEventListener('click', () => {
+    if (flashcards.length < 2) return;
+    for (let i = flashcards.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [flashcards[i], flashcards[j]] = [flashcards[j], flashcards[i]];
+    }
+    currentIndex = 0;
+    renderFlashcard();
+    showToast('Cards shuffled', 'info');
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (output.hidden) return;
+    if (e.key === 'ArrowLeft' && currentIndex > 0) {
+      currentIndex--;
+      renderFlashcard();
+    }
+    if (e.key === 'ArrowRight' && currentIndex < flashcards.length - 1) {
+      currentIndex++;
+      renderFlashcard();
+    }
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      document.getElementById('flip-card')?.click();
+    }
+  });
+
+  downloadBtn?.addEventListener('click', async () => {
+    if (!flashcards.length) return;
     const token = localStorage.getItem('studymate-token');
     const res = await fetch('/api/v1/export/pdf', {
       method: 'POST',
@@ -95,7 +139,7 @@ export async function initFlashcards() {
       a.href = url; a.download = 'flashcards.pdf'; a.click();
       URL.revokeObjectURL(url);
     }
-  }
+  });
 }
 
 async function loadHistoryFlashcards(fileId) {
@@ -108,29 +152,33 @@ async function loadHistoryFlashcards(fileId) {
     const data = await res.json();
     const flashcards = data.output?.outputJson?.flashcards || [];
     if (flashcards.length > 0) {
+      show(output);
+      StudyMateUpload.setFromHistory(fileId);
       let idx = 0;
       const fc = flashcards[idx];
-      output.innerHTML = `
-        <div style="text-align:center;margin-bottom:16px;">
-          <span style="color:var(--color-muted-text);font-size:0.85rem;">Card 1 of ${flashcards.length}</span>
-        </div>
-        <div class="flashcard" onclick="this.classList.toggle('flipped')">
-          <div class="flashcard-inner">
-            <div class="flashcard-front">
-              <span class="label">Question</span>
-              <p style="font-size:1.1rem;">${fc.question}</p>
-            </div>
-            <div class="flashcard-back">
-              <span class="label">Answer</span>
-              <p style="font-size:1.1rem;">${fc.answer}</p>
-            </div>
-          </div>
-        </div>
-        <div style="display:flex;justify-content:center;gap:12px;margin-top:20px;">
-          <button class="btn btn-secondary btn-sm" id="prev-card2" disabled>Previous</button>
-          <button class="btn btn-secondary btn-sm" id="next-card2" ${flashcards.length === 1 ? 'disabled' : ''}>Next</button>
-        </div>
-      `;
+      document.getElementById('flashcard-progress').textContent = `Card 1 of ${flashcards.length}`;
+      document.getElementById('card-question').textContent = fc.question || 'No question';
+      document.getElementById('card-answer').textContent = fc.answer || 'No answer';
+      const flashcard = document.getElementById('flashcard');
+      flashcard.classList.remove('flipped');
+      document.getElementById('prev-card').disabled = true;
+      document.getElementById('next-card').disabled = flashcards.length === 1;
+      document.getElementById('flip-card').onclick = () => flashcard.classList.toggle('flipped');
+      document.getElementById('prev-card').onclick = () => {
+        if (idx > 0) { idx--; showCard(idx); }
+      };
+      document.getElementById('next-card').onclick = () => {
+        if (idx < flashcards.length - 1) { idx++; showCard(idx); }
+      };
+      function showCard(i) {
+        const c = flashcards[i];
+        document.getElementById('flashcard-progress').textContent = `Card ${i + 1} of ${flashcards.length}`;
+        document.getElementById('card-question').textContent = c.question;
+        document.getElementById('card-answer').textContent = c.answer;
+        flashcard.classList.remove('flipped');
+        document.getElementById('prev-card').disabled = i === 0;
+        document.getElementById('next-card').disabled = i === flashcards.length - 1;
+      }
     }
   } catch {}
 }

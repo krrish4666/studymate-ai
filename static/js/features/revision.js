@@ -1,46 +1,59 @@
-import { initUpload } from '../upload.js';
-import { showToast, markdownToHtml, $ } from '../utils.js';
+import { showToast, markdownToHtml, $, hide, show } from '../utils.js';
 
 export async function initRevision() {
   const fileId = new URLSearchParams(location.search).get('historyId');
   if (fileId) return loadHistoryRevision(fileId);
 
-  const dropzone = document.getElementById('dropzone');
-  const fileInput = document.getElementById('file-input');
-  const progress = document.getElementById('upload-progress');
   const output = document.getElementById('feature-output');
   const generateBtn = document.getElementById('generate-btn');
   const downloadBtn = document.getElementById('download-pdf');
+  const loadingScreen = document.getElementById('loading-screen');
+  const revisionContent = document.getElementById('revision-content');
 
-  let currentFileRecordId = null;
   let currentContent = '';
+  let isGenerating = false;
 
-  initUpload(dropzone, fileInput, progress, 'revision');
+  StudyMateUpload.init();
 
   generateBtn?.addEventListener('click', async () => {
-    if (!currentFileRecordId) return;
+    if (isGenerating) return;
+    const fileRecordId = StudyMateUpload.getCurrentFileId();
+    if (!fileRecordId) return;
+
+    isGenerating = true;
     generateBtn.disabled = true;
-    output.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Generating revision sheet...</p></div>';
+    hide(output);
+    show(loadingScreen);
 
     const token = localStorage.getItem('studymate-token');
     const res = await fetch(`/api/v1/features/revision`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify({ fileRecordId: currentFileRecordId }),
+      body: JSON.stringify({ fileRecordId }),
     });
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: 'Generation failed' }));
-      output.innerHTML = `<p style="color:var(--color-error)">${err.detail}</p>`;
+      hide(loadingScreen);
+      show(output);
+      output.innerHTML = `<div class="card" style="padding:40px;text-align:center;"><p style="color:var(--color-error)">${err.detail}</p></div>`;
       generateBtn.disabled = false;
+      isGenerating = false;
       return;
     }
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
-    output.innerHTML = '<div class="streaming-content" style="columns:2;column-gap:24px;"></div>';
-    const contentEl = output.querySelector('.streaming-content');
     currentContent = '';
+
+    let stepOrder = ['analyzing', 'generating', 'formatting', 'finalizing'];
+    let stepIndex = 0;
+    let stepTimer = setInterval(() => {
+      if (stepIndex < stepOrder.length - 1) {
+        stepIndex++;
+        updateLoadingStep(stepOrder[stepIndex]);
+      }
+    }, 3000);
 
     while (true) {
       const { done, value } = await reader.read();
@@ -51,15 +64,28 @@ export async function initRevision() {
         if (line.startsWith('data: ')) {
           const data = line.slice(6);
           if (data === '[DONE]') {
-            downloadBtn.hidden = false;
+            clearInterval(stepTimer);
+            hide(loadingScreen);
+            show(output);
+            revisionContent.innerHTML = markdownToHtml(currentContent);
+            show(downloadBtn);
+            continue;
+          }
+          if (data.startsWith('[ERROR]')) {
+            clearInterval(stepTimer);
+            hide(loadingScreen);
+            show(output);
+            output.innerHTML = `<div class="card" style="padding:40px;text-align:center;"><p style="color:var(--color-error)">${data.slice(7)}</p></div>`;
+            generateBtn.disabled = false;
+            isGenerating = false;
             continue;
           }
           currentContent += data;
-          contentEl.innerHTML = markdownToHtml(currentContent);
         }
       }
     }
     generateBtn.disabled = false;
+    isGenerating = false;
   });
 
   downloadBtn?.addEventListener('click', async () => {
@@ -80,8 +106,22 @@ export async function initRevision() {
   });
 }
 
+function updateLoadingStep(stepId) {
+  document.querySelectorAll('.loading-step').forEach(el => {
+    if (el.dataset.step === stepId) {
+      el.classList.add('active');
+      el.classList.remove('done');
+    } else if (el.classList.contains('active')) {
+      el.classList.remove('active');
+      el.classList.add('done');
+    }
+  });
+}
+
 async function loadHistoryRevision(fileId) {
   const output = document.getElementById('feature-output');
+  const downloadBtn = document.getElementById('download-pdf');
+  const revisionContent = document.getElementById('revision-content');
   const token = localStorage.getItem('studymate-token');
   try {
     const res = await fetch(`/api/v1/history/${fileId}`, {
@@ -89,8 +129,10 @@ async function loadHistoryRevision(fileId) {
     });
     const data = await res.json();
     if (data.output?.outputText) {
-      output.innerHTML = `<div class="streaming-content" style="columns:2;column-gap:24px;">${markdownToHtml(data.output.outputText)}</div>`;
-      document.getElementById('download-pdf').hidden = false;
+      show(output);
+      revisionContent.innerHTML = markdownToHtml(data.output.outputText);
+      show(downloadBtn);
+      StudyMateUpload.setFromHistory(fileId);
     }
   } catch {}
 }

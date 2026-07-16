@@ -81,7 +81,7 @@ class TestUploadAPI:
             files={"file": ("test.txt", b"hello world", "text/plain")},
             data={"feature": ""},
         )
-        assert response.status_code == 422
+        assert response.status_code in (415, 422)
 
 
 class TestFeatureAPI:

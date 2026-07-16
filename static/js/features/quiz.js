@@ -1,79 +1,90 @@
 import { apiPost } from '../api.js';
-import { initUpload } from '../upload.js';
-import { showToast, $ } from '../utils.js';
+import { showToast, $, hide, show } from '../utils.js';
 
 export async function initQuiz() {
   const fileId = new URLSearchParams(location.search).get('historyId');
   if (fileId) return loadHistoryQuiz(fileId);
 
-  const dropzone = document.getElementById('dropzone');
-  const fileInput = document.getElementById('file-input');
-  const progress = document.getElementById('upload-progress');
   const output = document.getElementById('feature-output');
   const generateBtn = document.getElementById('generate-btn');
   const difficulty = document.getElementById('quiz-difficulty');
   const count = document.getElementById('quiz-count');
+  const loadingScreen = document.getElementById('loading-screen');
+  const downloadBtn = document.getElementById('download-pdf');
 
-  let currentFileRecordId = null;
   let questions = [];
   let answers = {};
   let submitted = false;
+  let isGenerating = false;
 
-  initUpload(dropzone, fileInput, progress, 'quiz');
+  StudyMateUpload.init();
 
   generateBtn?.addEventListener('click', async () => {
-    if (!currentFileRecordId) return;
+    if (isGenerating) return;
+    const fileRecordId = StudyMateUpload.getCurrentFileId();
+    if (!fileRecordId) return;
+
+    isGenerating = true;
     generateBtn.disabled = true;
-    output.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Generating quiz...</p></div>';
+    hide(output);
+    show(loadingScreen);
     submitted = false;
     answers = {};
 
     try {
       const res = await apiPost('/features/quiz', {
-        fileRecordId: currentFileRecordId,
+        fileRecordId,
         difficulty: difficulty?.value || 'medium',
         count: parseInt(count?.value || '10'),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: 'Generation failed' }));
-        output.innerHTML = `<p style="color:var(--color-error)">${err.detail}</p>`;
+        hide(loadingScreen);
+        show(output);
+        output.innerHTML = `<div class="card" style="padding:40px;text-align:center;"><p style="color:var(--color-error)">${err.detail}</p></div>`;
         return;
       }
       const data = await res.json();
       questions = data.questions || [];
       if (questions.length === 0) {
-        output.innerHTML = '<p style="color:var(--color-muted-text)">No questions generated</p>';
+        hide(loadingScreen);
+        show(output);
+        output.innerHTML = '<p style="color:var(--color-muted-text);text-align:center;padding:40px;">No questions generated</p>';
         return;
       }
+      hide(loadingScreen);
+      show(output);
+      document.getElementById('quiz-question-count').textContent = `${questions.length} questions`;
+      hide(downloadBtn);
       renderQuiz();
     } catch (err) {
+      hide(loadingScreen);
+      show(output);
       output.innerHTML = `<p style="color:var(--color-error)">${err.message}</p>`;
     } finally {
       generateBtn.disabled = false;
+      isGenerating = false;
     }
   });
 
   function renderQuiz() {
     const labels = ['A', 'B', 'C', 'D'];
-    output.innerHTML = `
-      <h3 style="margin-bottom:16px;">Quiz (${questions.length} questions)</h3>
-      <div id="quiz-questions"></div>
-      <div style="display:flex;gap:12px;margin-top:20px;">
-        <button class="btn btn-primary" id="submit-quiz">Submit Answers</button>
-        <button class="btn btn-primary btn-sm" id="download-quiz-pdf">Download PDF</button>
-      </div>
-      <div id="quiz-results" style="margin-top:20px;"></div>
-    `;
-
     const container = document.getElementById('quiz-questions');
+    const resultsDiv = document.getElementById('quiz-results');
+    resultsDiv.hidden = true;
+
+    container.innerHTML = '';
     questions.forEach((q, qi) => {
       const div = document.createElement('div');
-      div.style.marginBottom = '24px';
+      div.className = 'quiz-question';
+      const type = q.type || 'mcq';
+      const typeLabel = { mcq: 'Multiple Choice', 'true-false': 'True / False', 'fill-blank': 'Fill in the Blank', 'short-answer': 'Short Answer' };
       div.innerHTML = `
-        <p style="font-weight:600;margin-bottom:8px;">${qi + 1}. ${q.question}</p>
-        <div style="display:flex;flex-direction:column;gap:8px;">
+        <div class="quiz-question-type">${typeLabel[type] || 'Multiple Choice'}</div>
+        <div class="quiz-question-text">${qi + 1}. ${q.question}</div>
+        <div class="quiz-options" data-q="${qi}">
           ${q.options.map((opt, oi) => `
-            <button class="quiz-option" data-q="${qi}" data-opt="${oi}">${labels[oi]}. ${opt}</button>
+            <button class="quiz-option" data-q="${qi}" data-opt="${oi}">${q.options.length > 2 ? labels[oi] + '. ' : ''}${opt}</button>
           `).join('')}
         </div>
       `;
@@ -84,38 +95,69 @@ export async function initQuiz() {
       btn.addEventListener('click', () => {
         if (submitted) return;
         const qi = parseInt(btn.dataset.q);
-        container.querySelectorAll(`[data-q="${qi}"]`).forEach(b => b.classList.remove('selected'));
+        container.querySelectorAll(`[data-q="${qi}"] .quiz-option`).forEach(b => b.classList.remove('selected'));
+        document.querySelectorAll(`.quiz-options[data-q="${qi}"] .quiz-option`).forEach(b => b.classList.remove('selected'));
+        btn.closest('.quiz-options').querySelectorAll('.quiz-option').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
         answers[qi] = parseInt(btn.dataset.opt);
       });
     });
 
-    document.getElementById('submit-quiz').addEventListener('click', submitQuiz);
-    document.getElementById('download-quiz-pdf').addEventListener('click', downloadPdf);
+    document.getElementById('submit-quiz').onclick = submitQuiz;
+    document.getElementById('download-pdf').onclick = downloadPdf;
   }
 
   function submitQuiz() {
+    if (Object.keys(answers).length === 0) {
+      showToast('Please answer at least one question', 'error');
+      return;
+    }
     submitted = true;
     let correct = 0;
-    questions.forEach((q, qi) => {
-      const opts = document.querySelectorAll(`[data-q="${qi}"]`);
-      opts.forEach((btn, oi) => {
-        btn.classList.remove('selected', 'correct', 'incorrect');
+
+    document.querySelectorAll('.quiz-question').forEach((qDiv, qi) => {
+      const q = questions[qi];
+      if (!q) return;
+      const opts = qDiv.querySelectorAll('.quiz-option');
+      opts.forEach((btn) => {
+        btn.classList.add('disabled');
+        btn.classList.remove('selected');
+        const oi = parseInt(btn.dataset.opt);
         if (oi === q.correctAnswer) btn.classList.add('correct');
         if (answers[qi] === oi && oi !== q.correctAnswer) btn.classList.add('incorrect');
       });
       if (answers[qi] === q.correctAnswer) correct++;
+
+      if (q.explanation) {
+        const expDiv = document.createElement('div');
+        expDiv.className = 'quiz-explanation';
+        expDiv.textContent = '💡 ' + q.explanation;
+        qDiv.appendChild(expDiv);
+      }
     });
 
-    document.getElementById('quiz-results').innerHTML = `
-      <div class="card" style="text-align:center;">
-        <p style="font-size:1.5rem;font-weight:700;color:var(--color-primary)">${correct}/${questions.length}</p>
-        <p style="color:var(--color-muted-text)">${Math.round((correct / questions.length) * 100)}% Correct</p>
+    document.getElementById('submit-quiz').disabled = true;
+    const resultsDiv = document.getElementById('quiz-results');
+    resultsDiv.hidden = false;
+
+    const pct = Math.round((correct / questions.length) * 100);
+    let message = 'Keep practicing!';
+    if (pct >= 90) message = 'Excellent work! You mastered this topic!';
+    else if (pct >= 70) message = 'Good job! Review the ones you missed.';
+    else if (pct >= 50) message = 'Not bad, but needs more review.';
+
+    resultsDiv.innerHTML = `
+      <div class="quiz-result-card">
+        <div class="quiz-score">${correct}/${questions.length}</div>
+        <div class="quiz-percentage">${pct}% Correct</div>
+        <div class="quiz-message">${message}</div>
       </div>
     `;
+    show(document.getElementById('download-pdf'));
   }
 
   async function downloadPdf() {
+    if (!questions.length) return;
     const token = localStorage.getItem('studymate-token');
     const res = await fetch('/api/v1/export/pdf', {
       method: 'POST',
@@ -142,22 +184,38 @@ async function loadHistoryQuiz(fileId) {
     const data = await res.json();
     const questions = data.output?.outputJson?.questions || [];
     if (questions.length > 0) {
-      document.getElementById('generate-btn').hidden = true;
+      show(output);
+      StudyMateUpload.setFromHistory(fileId);
+      document.getElementById('quiz-question-count').textContent = `${questions.length} questions`;
       const container = document.getElementById('quiz-questions');
       const labels = ['A', 'B', 'C', 'D'];
       questions.forEach((q, qi) => {
         const div = document.createElement('div');
-        div.style.marginBottom = '24px';
+        div.className = 'quiz-question';
+        const type = q.type || 'mcq';
+        const typeLabel = { mcq: 'Multiple Choice', 'true-false': 'True / False', 'fill-blank': 'Fill in the Blank', 'short-answer': 'Short Answer' };
         div.innerHTML = `
-          <p style="font-weight:600;margin-bottom:8px;">${qi + 1}. ${q.question}</p>
-          <div style="display:flex;flex-direction:column;gap:8px;">
+          <div class="quiz-question-type">${typeLabel[type] || 'Multiple Choice'}</div>
+          <div class="quiz-question-text">${qi + 1}. ${q.question}</div>
+          <div class="quiz-options" data-q="${qi}">
             ${q.options.map((opt, oi) => `
-              <button class="quiz-option correct" data-q="${qi}" data-opt="${oi}" ${oi === q.correctAnswer ? 'style="border-color:var(--color-success)"' : ''}>${labels[oi]}. ${opt}</button>
+              <button class="quiz-option correct disabled" data-q="${qi}" data-opt="${oi}">${q.options.length > 2 ? labels[oi] + '. ' : ''}${opt}</button>
             `).join('')}
           </div>
+          ${q.explanation ? `<div class="quiz-explanation">💡 ${q.explanation}</div>` : ''}
         `;
         container.appendChild(div);
       });
+      document.getElementById('submit-quiz').disabled = true;
+      document.getElementById('submit-quiz').textContent = 'Viewing History';
+      const resultsDiv = document.getElementById('quiz-results');
+      resultsDiv.hidden = false;
+      const correct = questions.filter((q, i) => q.correctAnswer === 0).length;
+      resultsDiv.innerHTML = `
+        <div class="quiz-result-card">
+          <div class="quiz-question-text" style="margin-bottom:0;">Historical session — answers shown</div>
+        </div>
+      `;
     }
   } catch {}
 }

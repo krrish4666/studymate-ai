@@ -1,15 +1,128 @@
+import json
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.core.security import decrypt_data
 from app.models.api_key import ApiKey
+from app.models.document_cache import DocumentCache
+from app.models.file_record import FileRecord
 from app.services.file_parser import file_parser
 from app.services.storage_service import storage_service
 
 
+NOTES_SYSTEM_PROMPT = """You are an expert university professor creating comprehensive study notes. Your notes must be detailed, well-structured, and educationally rich.
+
+STRICT FORMAT REQUIREMENTS:
+- Start with a clear Title (H1)
+- Follow with a short introduction paragraph
+- Use numbered sections (1., 2., 3., etc.)
+- Within each section use:
+  - H3 headings for subsections
+  - **bold** for key terms and important concepts
+  - *italic* for emphasis and definitions
+  - Bullet lists (- ) for points
+  - Numbered lists (1. ) for sequences
+  - `code` for technical terms, formulas, or commands
+  - > blockquotes for important definitions or quotes
+  - Tables where comparisons are useful
+  - Horizontal rules (---) between major sections
+
+REQUIRED SECTIONS (in order):
+1. **Definition** - Simple, clear explanation of the core concept
+2. **Core Concepts** - Bullet-pointed key ideas with brief explanations
+3. **Detailed Explanation** - Comprehensive breakdown with:
+   - Multiple subsections as needed
+   - Step-by-step explanations
+   - Relationships between concepts
+4. **Important Points** - Key facts to remember, prefixed with ✅
+5. **Examples** - At least 2-3 practical, real-world examples
+6. **Advantages** - Bullet list of benefits
+7. **Disadvantages** - Bullet list of limitations
+8. **Interview / Exam Questions** - 5-10 practice questions
+9. **Summary** - Concise revision summary of key takeaways
+
+QUALITY GUIDELINES:
+- Write 1500-3000 words minimum
+- Explain concepts as if teaching a beginner
+- Include real-world analogies where helpful
+- Highlight exam tips with 💡 emoji
+- Mark important keywords in **bold**
+- Never leave a section empty - if content doesn't apply, note it
+- Use markdown tables for comparisons
+- End with a horizontal rule and "---" before summary
+- Do NOT use excessive summarization - be comprehensive"""
+
+REVISION_SYSTEM_PROMPT = """You are an expert university professor creating a last-minute revision cheat sheet.
+
+Generate a ONE-PAGE summary with these sections:
+1. **Key Concepts** - Core ideas in bullet points
+2. **Important Formulas** (if applicable) - Use `code` formatting
+3. **Mnemonics** - Memory aids to remember concepts
+4. **Key Points to Remember** - Critical facts
+5. **Common Mistakes to Avoid** - Pitfalls students face
+6. **Quick Reference Table** - Comparison of key elements in a markdown table
+7. **Frequently Asked Questions** - 3-5 quick Q&A pairs
+
+Format: Clean markdown, max 800 words, 2-column layout friendly.
+Use **bold** for emphasis, bullet lists, and a compact scannable style."""
+
+FLASHCARDS_SYSTEM_PROMPT = """You are an expert university professor creating flashcards for exam preparation.
+
+Generate 12-18 high-quality flashcards that cover:
+- Key definitions
+- Important concepts
+- Relationships between ideas
+- Practical applications
+- Common exam questions
+
+Each flashcard must have:
+- A clear, specific question on the front
+- A concise but complete answer on the back
+- Answers should include key terms in **bold**
+
+Return ONLY valid JSON:
+{"flashcards": [{"id": "1", "question": "...", "answer": "..."}]}"""
+
+QUIZ_SYSTEM_PROMPT = """You are an expert university professor creating assessment questions.
+
+Generate diverse question types:
+- 60% MCQs (4 options, one correct)
+- 15% True/False questions
+- 15% Fill-in-the-blank questions  
+- 10% Short answer questions
+
+Each question must have:
+- Clear, unambiguous wording
+- 4 options for MCQ, 2 for True/False
+- The correct answer index
+- A brief explanation of why the answer is correct
+
+Return ONLY valid JSON:
+{"questions": [{"id": "1", "type": "mcq", "question": "...", "options": ["A", "B", "C", "D"], "correctAnswer": 0, "explanation": "..."}]}
+
+For True/False: options: ["True", "False"], correctAnswer: 0 or 1
+For fill-in-blank: options: ["answer1", "wrong1", "wrong2", "wrong3"], correctAnswer: 0
+For short-answer: options: ["expected answer"], correctAnswer: 0"""
+
+MINDMAP_SYSTEM_PROMPT = """You are an expert university professor creating a hierarchical mind map.
+
+Structure requirements:
+- Root: The main topic (central concept)
+- Level 1: 3-5 major subtopics
+- Level 2: 2-4 details per subtopic
+- Level 3: (optional) 2-3 specifics per detail
+- Max 3 levels deep
+
+Each node must have a short, clear label (max 5 words).
+
+Return ONLY valid JSON:
+{"mindmap": {"id": "root", "label": "Central Topic", "children": [{"id": "1", "label": "Subtopic", "children": [{"id": "1.1", "label": "Detail", "children": []}]}]}}"""
+
+
 class GeminiService:
-    DEFAULT_MODEL = "models/gemini-2.0-flash"
+    DEFAULT_MODEL = "models/gemini-3.1-flash-lite"
 
     async def get_api_key(self, db: AsyncSession, user_id) -> str:
         result = await db.execute(
@@ -30,67 +143,87 @@ class GeminiService:
         genai.configure(api_key=api_key)
         return genai
 
-    async def _extract_file_text(self, file_record) -> str:
+    async def _get_cached_text(self, db: AsyncSession, file_record_id) -> str | None:
+        result = await db.execute(
+            select(DocumentCache).where(DocumentCache.fileRecordId == file_record_id)
+        )
+        cache = result.scalar_one_or_none()
+        if cache:
+            return cache.extractedText
+        return None
+
+    async def _extract_file_text(self, db: AsyncSession, file_record) -> str:
+        cached = await self._get_cached_text(db, file_record.id)
+        if cached:
+            return cached
         file_data, _ = storage_service.get_stream(file_record.fileUrl)
-        return file_parser.extract_text(file_data.read(), file_record.originalName)
+        text = file_parser.extract_text(file_data.read(), file_record.originalName)
+        return text
 
     async def stream_notes(
         self, db: AsyncSession, user_id, file_record, mode: str, api_key: str
     ):
-        text_content = await self._extract_file_text(file_record)
-        genai = self._build_client(api_key)
-        model = genai.GenerativeModel(self.DEFAULT_MODEL)
+        try:
+            text_content = await self._extract_file_text(db, file_record)
+            genai = self._build_client(api_key)
+            model = genai.GenerativeModel(self.DEFAULT_MODEL)
 
-        mode_instruction = (
-            "Provide a brief, compact summary with bullet points only."
-            if mode == "compact"
-            else "Provide comprehensive, detailed, well-structured markdown notes with headings, subheadings, and explanations."
-        )
+            mode_instruction = (
+                "Generate COMPACT notes with bullet points and brief explanations only. Aim for 800-1200 words."
+                if mode == "compact"
+                else "Generate DETAILED comprehensive notes. Aim for 2000-4000 words."
+            )
 
-        prompt = (
-            "You are an expert academic tutor. Convert the following study material into structured notes.\n"
-            f"{mode_instruction}\n\n"
-            "Format your response in clean Markdown.\n\n"
-            f"Material:\n{text_content[:50000]}"
-        )
+            prompt = (
+                f"{NOTES_SYSTEM_PROMPT}\n\n"
+                f"{mode_instruction}\n\n"
+                "Generate comprehensive study notes from the following material. "
+                "Follow the required format strictly.\n\n"
+                f"Material:\n{text_content[:50000]}"
+            )
 
-        response = model.generate_content(prompt, stream=True)
-        full_text = ""
-        for chunk in response:
-            if chunk.text:
-                full_text += chunk.text
-                yield f"data: {chunk.text}\n\n"
+            response = model.generate_content(prompt, stream=True)
+            full_text = ""
+            for chunk in response:
+                if chunk.text:
+                    full_text += chunk.text
+                    lines = chunk.text.split("\n")
+                    formatted = "\n".join(f"data: {line}" for line in lines)
+                    yield f"{formatted}\n\n"
 
-        yield f"data: [DONE]\n\n"
-        await self._save_output(db, user_id, file_record.id, None, full_text)
+            yield "data: [DONE]\n\n"
+            await self._save_output(db, user_id, file_record.id, None, full_text)
+        except Exception as e:
+            yield f"data: [ERROR] {str(e)}\n\n"
 
     async def stream_revision(
         self, db: AsyncSession, user_id, file_record, api_key: str
     ):
-        text_content = await self._extract_file_text(file_record)
-        genai = self._build_client(api_key)
-        model = genai.GenerativeModel(self.DEFAULT_MODEL)
+        try:
+            text_content = await self._extract_file_text(db, file_record)
+            genai = self._build_client(api_key)
+            model = genai.GenerativeModel(self.DEFAULT_MODEL)
 
-        prompt = (
-            "You are an expert academic tutor. Create a concise revision cheat sheet "
-            "from the following study material.\n"
-            "Strictly limit your response to a maximum of 600 words.\n"
-            "Use bullet points, short phrases, and key formulas/concepts only. "
-            "Format for quick scanning in a 2-column layout.\n\n"
-            f"Material:\n{text_content[:50000]}"
-        )
+            prompt = (
+                f"{REVISION_SYSTEM_PROMPT}\n\n"
+                f"Material:\n{text_content[:50000]}"
+            )
 
-        response = model.generate_content(prompt, stream=True)
-        full_text = ""
-        for chunk in response:
-            if chunk.text:
-                full_text += chunk.text
-                yield f"data: {chunk.text}\n\n"
+            response = model.generate_content(prompt, stream=True)
+            full_text = ""
+            for chunk in response:
+                if chunk.text:
+                    full_text += chunk.text
+                    lines = chunk.text.split("\n")
+                    formatted = "\n".join(f"data: {line}" for line in lines)
+                    yield f"{formatted}\n\n"
 
-        yield f"data: [DONE]\n\n"
-        await self._save_output(
-            db, user_id, file_record.id, None, full_text, feature="revision"
-        )
+            yield "data: [DONE]\n\n"
+            await self._save_output(
+                db, user_id, file_record.id, None, full_text, feature="revision"
+            )
+        except Exception as e:
+            yield f"data: [ERROR] {str(e)}\n\n"
 
     async def _save_output(self, db, user_id, file_record_id, output_json, output_text, feature="notes"):
         from app.models.session_output import SessionOutput
@@ -109,22 +242,18 @@ class GeminiService:
         self, db: AsyncSession, user_id, file_record, api_key: str,
         difficulty: str = "medium", count: int = 10,
     ) -> list[dict]:
-        text_content = await self._extract_file_text(file_record)
+        text_content = await self._extract_file_text(db, file_record)
         genai = self._build_client(api_key)
         model = genai.GenerativeModel(self.DEFAULT_MODEL)
 
         prompt = (
-            f"You are an expert academic tutor. Create a {difficulty} difficulty MCQ quiz "
-            f"with exactly {count} questions from the following study material.\n"
-            "Each question must have exactly 4 options with one correct answer.\n"
-            "Return ONLY valid JSON in this exact format (no markdown, no code fences):\n"
-            '{"questions": [{"id": "1", "question": "...", "options": ["A", "B", "C", "D"], "correctAnswer": 0}]}\n'
-            "correctAnswer is the 0-based index of the correct option.\n\n"
+            f"{QUIZ_SYSTEM_PROMPT}\n\n"
+            f"Difficulty: {difficulty}\n"
+            f"Generate exactly {count} questions.\n\n"
             f"Material:\n{text_content[:50000]}"
         )
 
         response = model.generate_content(prompt)
-        import json
         try:
             result = json.loads(response.text.strip())
             questions = result.get("questions", [])
@@ -142,23 +271,16 @@ class GeminiService:
     async def generate_mindmap(
         self, db: AsyncSession, user_id, file_record, api_key: str,
     ) -> dict:
-        text_content = await self._extract_file_text(file_record)
+        text_content = await self._extract_file_text(db, file_record)
         genai = self._build_client(api_key)
         model = genai.GenerativeModel(self.DEFAULT_MODEL)
 
         prompt = (
-            "You are an expert academic tutor. Create a hierarchical mind map "
-            "from the following study material.\n"
-            "The mind map must have a central root topic with up to 3 levels of depth.\n"
-            "Return ONLY valid JSON in this exact format (no markdown, no code fences):\n"
-            '{"mindmap": {"id": "root", "label": "Central Topic", '
-            '"children": [{"id": "1", "label": "Subtopic", '
-            '"children": [{"id": "1.1", "label": "Detail", "children": []}]}]}}\n\n'
+            f"{MINDMAP_SYSTEM_PROMPT}\n\n"
             f"Material:\n{text_content[:50000]}"
         )
 
         response = model.generate_content(prompt)
-        import json
         try:
             result = json.loads(response.text.strip())
             mindmap = result.get("mindmap", {})
@@ -176,20 +298,16 @@ class GeminiService:
     async def generate_flashcards(
         self, db: AsyncSession, user_id, file_record, api_key: str
     ) -> list[dict]:
-        text_content = await self._extract_file_text(file_record)
+        text_content = await self._extract_file_text(db, file_record)
         genai = self._build_client(api_key)
         model = genai.GenerativeModel(self.DEFAULT_MODEL)
 
         prompt = (
-            "You are an expert academic tutor. Create a set of flashcards from the following study material.\n"
-            "Generate 10-15 flashcards that cover the key concepts.\n"
-            "Return ONLY valid JSON in this exact format (no markdown, no code fences):\n"
-            '{"flashcards": [{"id": "1", "question": "...", "answer": "..."}]}\n\n'
+            f"{FLASHCARDS_SYSTEM_PROMPT}\n\n"
             f"Material:\n{text_content[:50000]}"
         )
 
         response = model.generate_content(prompt)
-        import json
         try:
             result = json.loads(response.text.strip())
             flashcards = result.get("flashcards", [])

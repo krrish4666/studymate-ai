@@ -55,6 +55,7 @@ async def generate_notes(
         headers={
             "Cache-Control": "no-cache",
             "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
         },
     )
 
@@ -129,5 +130,6 @@ async def generate_revision(
         headers={
             "Cache-Control": "no-cache",
             "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
         },
     )

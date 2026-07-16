@@ -6,7 +6,10 @@
   <title>Revision — StudyMate AI HUB</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/styles.css">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <link rel="stylesheet" href="/static/css/styles.css?v=2">
 </head>
 <body>
   <header>
@@ -17,6 +20,7 @@
         <li><a href="/feature/flashcards">Flashcards</a></li>
         <li><a href="/feature/quiz">Quiz</a></li>
         <li><a href="/feature/mindmap">Mind Map</a></li>
+        <li><a href="/feature/revision" class="active">Revision</a></li>
         <li><a href="/history">History</a></li>
         <li><a href="/profile">Profile</a></li>
       </ul>
@@ -26,11 +30,13 @@
   </header>
 
   <main class="page-container">
-    <h1 style="margin-bottom:8px;">Revision Cheat Sheet</h1>
-    <p style="color:var(--color-muted-text);margin-bottom:24px;">Generate concise revision notes for quick exam prep</p>
+    <div class="feature-header">
+      <h1>Revision Cheat Sheet</h1>
+      <p>Generate concise revision notes for quick exam prep</p>
+    </div>
 
-    <section class="upload-area">
-      <div class="upload-zone" id="dropzone">
+    <section class="upload-area" id="upload-area">
+      <div class="upload-zone" id="dropzone" data-feature="revision">
         <div class="icon">&#128203;</div>
         <p>Drag & drop files here or click to browse</p>
         <p style="font-size:0.8rem;margin-top:8px;">PDF, DOCX, PPTX, TXT, JPG, PNG, WebP (max 25 MB)</p>
@@ -39,19 +45,49 @@
       <div id="upload-progress" class="progress-bar" hidden><div class="fill" style="width:0%"></div></div>
     </section>
 
-    <div style="display:flex;gap:12px;margin-top:20px;">
-      <button class="btn btn-primary" id="generate-btn" hidden>Generate Revision Sheet</button>
-      <button class="btn btn-secondary btn-sm" id="download-pdf" hidden>Download PDF</button>
+    <div id="file-info" class="file-info-card" hidden style="display: none;">
+      <div class="file-info-content">
+        <span class="file-icon">&#128196;</span>
+        <div class="file-details">
+          <span class="file-name" id="file-name"></span>
+          <span class="file-size" id="file-size"></span>
+          <span class="file-status success" id="file-status">Ready to generate</span>
+        </div>
+      </div>
+      <button class="btn btn-secondary btn-sm" id="remove-file-btn">Remove / Change File</button>
     </div>
 
-    <section id="feature-output" class="feature-output"></section>
+    <div class="feature-controls" id="feature-controls" hidden>
+      <button class="btn btn-primary" id="generate-btn">Generate Revision Sheet</button>
+    </div>
+
+    <div id="loading-screen" class="loading-screen" hidden>
+      <div class="loading-content">
+        <div class="loading-spinner"></div>
+        <div class="loading-steps">
+          <div class="loading-step active" data-step="analyzing">Analyzing document...</div>
+          <div class="loading-step" data-step="generating">Creating revision sheet...</div>
+          <div class="loading-step" data-step="formatting">Formatting content...</div>
+          <div class="loading-step" data-step="finalizing">Almost done...</div>
+        </div>
+      </div>
+    </div>
+
+    <section id="feature-output" class="feature-output" hidden>
+      <div class="output-header">
+        <h2>Revision Cheat Sheet</h2>
+        <button class="btn btn-primary btn-sm" id="download-pdf" hidden>Download PDF</button>
+      </div>
+      <div id="revision-content" class="revision-content"></div>
+    </section>
   </main>
 
+  <script src="/static/js/upload.js?v=3" defer></script>
   <script type="module">
     import { requireAuth } from '/static/js/auth.js';
     import { initRevision } from '/static/js/features/revision.js';
     if (requireAuth()) initRevision();
   </script>
-  <script type="module" src="/static/js/main.js"></script>
+  <script type="module" src="/static/js/main.js?v=2"></script>
 </body>
 </html>

@@ -8,11 +8,15 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
+from app.database import engine
+from app.models.base import Base
 from app.api.v1 import auth, upload, features, history, export, profile
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     yield
 
 
@@ -57,4 +61,7 @@ async def serve_frontend(full_path: str):
     if not file_path.is_file():
         file_path = Path("static") / "index.html"
 
-    return FileResponse(file_path)
+    return FileResponse(
+        file_path,
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+    )
