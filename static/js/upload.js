@@ -270,6 +270,7 @@
   }
 
   window.StudyMateUpload = {
+    init: function () { initUpload(); },
     getCurrentFileId: function () { return currentFileRecordId; },
     reset: function () { currentFileRecordId = null; },
     setFromHistory: function (fileRecordId) {

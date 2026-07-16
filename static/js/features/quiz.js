@@ -1,5 +1,5 @@
 import { apiPost } from '../api.js';
-import { showToast, $, hide, show } from '../utils.js';
+import { showToast, $, hide, show } from '../utils.js?v=7';
 
 export async function initQuiz() {
   const fileId = new URLSearchParams(location.search).get('historyId');
@@ -22,12 +22,28 @@ export async function initQuiz() {
   generateBtn?.addEventListener('click', async () => {
     if (isGenerating) return;
     const fileRecordId = StudyMateUpload.getCurrentFileId();
-    if (!fileRecordId) return;
+    if (!fileRecordId) {
+      showToast('Please select a file first', 'error');
+      return;
+    }
 
     isGenerating = true;
     generateBtn.disabled = true;
+    const originalBtnText = generateBtn.textContent;
+    generateBtn.textContent = 'Generating Quiz...';
+
+    const fileStatus = document.getElementById('file-status') || (document.getElementById('file-info') && document.getElementById('file-info').querySelector('.file-status'));
+    if (fileStatus) {
+      fileStatus.textContent = 'Generating quiz questions...';
+      fileStatus.className = 'file-status info';
+    }
+
     hide(output);
-    show(loadingScreen);
+    show(loadingScreen, 'block');
+    if (loadingScreen) {
+      loadingScreen.hidden = false;
+      loadingScreen.style.display = 'block';
+    }
     submitted = false;
     answers = {};
 
@@ -39,30 +55,74 @@ export async function initQuiz() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: 'Generation failed' }));
+        const errDetail = err.detail || 'Generation failed';
         hide(loadingScreen);
-        show(output);
-        output.innerHTML = `<div class="card" style="padding:40px;text-align:center;"><p style="color:var(--color-error)">${err.detail}</p></div>`;
+        show(output, 'block');
+        if (output) {
+          output.hidden = false;
+          output.style.display = 'block';
+        }
+        output.innerHTML = `<div class="card" style="padding:40px;text-align:center;"><p style="color:var(--color-error);font-weight:600;font-size:1.1rem;">${errDetail}</p></div>`;
+        showToast(errDetail, 'error');
+        if (fileStatus) {
+          fileStatus.textContent = 'Generation failed';
+          fileStatus.className = 'file-status error';
+        }
+        generateBtn.disabled = false;
+        generateBtn.textContent = originalBtnText || 'Generate Quiz';
+        isGenerating = false;
         return;
       }
       const data = await res.json();
       questions = data.questions || [];
       if (questions.length === 0) {
         hide(loadingScreen);
-        show(output);
+        show(output, 'block');
+        if (output) {
+          output.hidden = false;
+          output.style.display = 'block';
+        }
         output.innerHTML = '<p style="color:var(--color-muted-text);text-align:center;padding:40px;">No questions generated</p>';
+        if (fileStatus) {
+          fileStatus.textContent = 'No questions generated';
+          fileStatus.className = 'file-status error';
+        }
+        generateBtn.disabled = false;
+        generateBtn.textContent = originalBtnText || 'Generate Quiz';
+        isGenerating = false;
         return;
       }
       hide(loadingScreen);
-      show(output);
+      show(output, 'block');
+      if (output) {
+        output.hidden = false;
+        output.style.display = 'block';
+      }
       document.getElementById('quiz-question-count').textContent = `${questions.length} questions`;
       hide(downloadBtn);
+      if (fileStatus) {
+        fileStatus.textContent = 'Quiz generated successfully';
+        fileStatus.className = 'file-status success';
+      }
+      showToast('Quiz generated successfully!', 'success');
       renderQuiz();
     } catch (err) {
       hide(loadingScreen);
-      show(output);
-      output.innerHTML = `<p style="color:var(--color-error)">${err.message}</p>`;
+      show(output, 'block');
+      if (output) {
+        output.hidden = false;
+        output.style.display = 'block';
+      }
+      const errMsg = err.message || 'Generation error';
+      output.innerHTML = `<div class="card" style="padding:40px;text-align:center;"><p style="color:var(--color-error);font-weight:600;font-size:1.1rem;">${errMsg}</p></div>`;
+      showToast(errMsg, 'error');
+      if (fileStatus) {
+        fileStatus.textContent = 'Generation failed';
+        fileStatus.className = 'file-status error';
+      }
     } finally {
       generateBtn.disabled = false;
+      generateBtn.textContent = originalBtnText || 'Generate Quiz';
       isGenerating = false;
     }
   });
