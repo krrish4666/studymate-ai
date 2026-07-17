@@ -77,12 +77,13 @@
       <div class="output-header">
         <h2>Mind Map</h2>
         <div class="mindmap-controls">
-          <span class="hint">Drag to pan &bull; Scroll to zoom</span>
+          <span class="hint">Click node to expand &bull; Scroll to zoom &bull; Drag to pan</span>
+          <button class="btn btn-secondary btn-sm" id="reset-view-btn">Reset View</button>
           <button class="btn btn-primary btn-sm" id="download-pdf" hidden>Download PDF</button>
         </div>
       </div>
       <div id="mindmap-wrapper" class="mindmap-wrapper">
-        <canvas id="mindmap-canvas"></canvas>
+        <div id="mindmap-tree" class="mm-tree"></div>
       </div>
     </section>
   </main>

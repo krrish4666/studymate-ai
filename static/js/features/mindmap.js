@@ -1,5 +1,5 @@
 import { apiPost } from '../api.js';
-import { showToast, $, hide, show } from '../utils.js?v=7';
+import { showToast, hide, show } from '../utils.js?v=7';
 
 export async function initMindmap() {
   const fileId = new URLSearchParams(location.search).get('historyId');
@@ -9,9 +9,11 @@ export async function initMindmap() {
   const generateBtn = document.getElementById('generate-btn');
   const downloadBtn = document.getElementById('download-pdf');
   const loadingScreen = document.getElementById('loading-screen');
+  const resetViewBtn = document.getElementById('reset-view-btn');
 
   let currentMindmap = null;
   let isGenerating = false;
+  let zoom = 1;
 
   StudyMateUpload.init();
 
@@ -132,237 +134,135 @@ export async function initMindmap() {
       URL.revokeObjectURL(url);
     }
   });
+
+  resetViewBtn?.addEventListener('click', () => {
+    const tree = document.getElementById('mindmap-tree');
+    const wrapper = document.getElementById('mindmap-wrapper');
+    if (tree && wrapper) {
+      zoom = 1;
+      tree.style.transform = 'scale(1)';
+      wrapper.scrollTo({ left: 0, top: 0, behavior: 'smooth' });
+    }
+  });
 }
 
 function renderMindmap(root) {
-  const canvas = document.getElementById('mindmap-canvas');
-  if (!canvas) return;
+  const tree = document.getElementById('mindmap-tree');
+  if (!tree) return;
 
-  const wrapper = canvas.parentElement;
-  const rect = wrapper.getBoundingClientRect();
-  const dpr = window.devicePixelRatio || 1;
+  tree.innerHTML = '';
+  const rootEl = buildNode(root, 0);
+  tree.appendChild(rootEl);
 
-  const width = Math.max(600, rect.width - 4);
-  const height = 560;
-
-  canvas.style.width = width + 'px';
-  canvas.style.height = height + 'px';
-  canvas.width = width * dpr;
-  canvas.height = height * dpr;
-
-  const ctx = canvas.getContext('2d');
-  ctx.scale(dpr, dpr);
-
-  let offsetX = width / 2;
-  let offsetY = 60;
-  let scale = 1;
+  const wrapper = document.getElementById('mindmap-wrapper');
   let isDragging = false;
-  let startX, startY;
+  let startX, startY, scrollLeft, scrollTop;
+  let zoom = 1;
 
-  function getNodeSize(depth) {
-    const sizes = [
-      { r: 65, font: 14 },
-      { r: 50, font: 12 },
-      { r: 38, font: 11 },
-      { r: 30, font: 10 },
-    ];
-    return sizes[Math.min(depth, 3)];
-  }
-
-  function layoutTree(node, depth, x, y, availableWidth) {
-    const sz = getNodeSize(depth);
-    if (!node.children || node.children.length === 0) {
-      return { x, y, width: sz.r * 2 };
-    }
-
-    const children = node.children;
-    const childCount = children.length;
-    const spacing = Math.min(availableWidth / (childCount + 1), 180);
-    const totalWidth = spacing * (childCount - 1);
-    const startX = x - totalWidth / 2;
-    const yOffset = depth === 0 ? 120 : 90;
-
-    const childPositions = [];
-    children.forEach((child, i) => {
-      const cx = startX + i * spacing;
-      const cy = y + yOffset;
-      const sub = layoutTree(child, depth + 1, cx, cy, spacing * 1.5);
-      childPositions.push(sub);
-    });
-
-    return { x, y, width: Math.max(totalWidth, sz.r * 2) };
-  }
-
-  function drawTree(node, depth, computedPositions, py) {
-    const sz = getNodeSize(depth);
-    const pos = computedPositions;
-    if (!pos) return;
-
-    const x = pos.x * scale + offsetX;
-    const y = pos.y * scale + offsetY;
-
-    if (node.children && node.children.length > 0 && depth > 0) {
-      node.children.forEach((child, i) => {
-        const childPos = computedPositions.children ? computedPositions.children[i] : null;
-        if (childPos) {
-          const cx = childPos.x * scale + offsetX;
-          const cy = childPos.y * scale + offsetY;
-          ctx.beginPath();
-          ctx.moveTo(x, y + sz.r * scale);
-          ctx.lineTo(cx, cy - getNodeSize(depth + 1).r * scale);
-          ctx.strokeStyle = getColor(depth, 0.3);
-          ctx.lineWidth = 2 * scale;
-          ctx.stroke();
-        }
-      });
-    }
-
-    const color = getColor(depth);
-    const grad = ctx.createRadialGradient(x, y, 0, x, y, sz.r * scale);
-    grad.addColorStop(0, getColor(depth, 0.35));
-    grad.addColorStop(0.7, getColor(depth, 0.15));
-    grad.addColorStop(1, getColor(depth, 0.05));
-
-    ctx.beginPath();
-    ctx.arc(x, y, sz.r * scale, 0, Math.PI * 2);
-    ctx.fillStyle = grad;
-    ctx.fill();
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2.5 * scale;
-    ctx.stroke();
-
-    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--color-text').trim() || '#1c1917';
-    ctx.font = `${sz.font * scale}px Inter, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-
-    const label = node.label || '';
-    const maxChars = Math.floor((sz.r * 1.6) / (sz.font * 0.6));
-    if (label.length <= maxChars) {
-      ctx.fillText(label, x, y);
-    } else {
-      const words = label.split(' ');
-      const lines = [];
-      let line = '';
-      for (const word of words) {
-        if ((line + ' ' + word).length <= maxChars) {
-          line += (line ? ' ' : '') + word;
-        } else {
-          lines.push(line);
-          line = word;
-        }
-      }
-      if (line) lines.push(line);
-      lines.forEach((l, i) => {
-        ctx.fillText(l, x, y + (i - (lines.length - 1) / 2) * (sz.font * 1.2 * scale));
-      });
-    }
-
-    if (node.children && node.children.length > 0 && computedPositions.children) {
-      node.children.forEach((child, i) => {
-        drawTree(child, depth + 1, computedPositions.children[i], null);
-      });
-    }
-  }
-
-  function computeLayout(node, depth, x, y, availableWidth) {
-    const sz = getNodeSize(depth);
-    const result = { x, y, children: [] };
-
-    if (!node.children || node.children.length === 0) {
-      return result;
-    }
-
-    const children = node.children;
-    const childCount = children.length;
-    const spacing = Math.min(availableWidth / Math.max(childCount - 1, 1), 180);
-    const totalWidth = spacing * (childCount - 1);
-    const startX = x - totalWidth / 2;
-    const yOffset = depth === 0 ? 120 : 90;
-
-    children.forEach((child, i) => {
-      const cx = startX + i * spacing;
-      const cy = y + yOffset;
-      const subAvailable = Math.max(spacing * 1.5, 120);
-      result.children.push(computeLayout(child, depth + 1, cx, cy, subAvailable));
-    });
-
-    return result;
-  }
-
-  function draw() {
-    ctx.clearRect(0, 0, width, height);
-    const layout = computeLayout(root, 0, 0, 0, width - 100);
-    drawTree(root, 0, layout, null);
-  }
-
-  draw();
-
-  canvas.onmousedown = (e) => {
+  wrapper.onmousedown = (e) => {
+    if (e.target.closest('.mm-node-label')) return;
     isDragging = true;
-    const r = canvas.getBoundingClientRect();
-    startX = e.clientX - offsetX;
-    startY = e.clientY - offsetY;
-    canvas.style.cursor = 'grabbing';
+    startX = e.clientX;
+    startY = e.clientY;
+    scrollLeft = wrapper.scrollLeft;
+    scrollTop = wrapper.scrollTop;
+    wrapper.style.cursor = 'grabbing';
   };
 
-  canvas.onmousemove = (e) => {
+  wrapper.onmousemove = (e) => {
     if (!isDragging) return;
-    offsetX = e.clientX - startX;
-    offsetY = e.clientY - startY;
-    draw();
-  };
-
-  canvas.onmouseup = () => {
-    isDragging = false;
-    canvas.style.cursor = 'grab';
-  };
-  canvas.onmouseleave = () => {
-    isDragging = false;
-    canvas.style.cursor = 'grab';
-  };
-
-  canvas.onwheel = (e) => {
     e.preventDefault();
-    const rect = canvas.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
-
-    const delta = e.deltaY > 0 ? 0.88 : 1.12;
-    const newScale = Math.max(0.2, Math.min(2.5, scale * delta));
-
-    offsetX = mx - (mx - offsetX) * (newScale / scale);
-    offsetY = my - (my - offsetY) * (newScale / scale);
-    scale = newScale;
-    draw();
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    wrapper.scrollLeft = scrollLeft - dx;
+    wrapper.scrollTop = scrollTop - dy;
   };
 
-  canvas.ontouchstart = (e) => {
+  wrapper.onmouseup = () => { isDragging = false; wrapper.style.cursor = 'grab'; };
+  wrapper.onmouseleave = () => { isDragging = false; wrapper.style.cursor = 'grab'; };
+
+  wrapper.onwheel = (e) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+    zoom = Math.max(0.3, Math.min(2, zoom * delta));
+    tree.style.transform = `scale(${zoom})`;
+  };
+
+  let touchStartX, touchStartY, touchScrollLeft, touchScrollTop;
+  wrapper.ontouchstart = (e) => {
     if (e.touches.length === 1) {
-      isDragging = true;
-      startX = e.touches[0].clientX - offsetX;
-      startY = e.touches[0].clientY - offsetY;
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+      touchScrollLeft = wrapper.scrollLeft;
+      touchScrollTop = wrapper.scrollTop;
     }
   };
-  canvas.ontouchmove = (e) => {
-    if (!isDragging || e.touches.length !== 1) return;
+  wrapper.ontouchmove = (e) => {
+    if (e.touches.length !== 1) return;
     e.preventDefault();
-    offsetX = e.touches[0].clientX - startX;
-    offsetY = e.touches[0].clientY - startY;
-    draw();
+    const dx = e.touches[0].clientX - touchStartX;
+    const dy = e.touches[0].clientY - touchStartY;
+    wrapper.scrollLeft = touchScrollLeft - dx;
+    wrapper.scrollTop = touchScrollTop - dy;
   };
-  canvas.ontouchend = () => { isDragging = false; };
+
+  function centerOnNode(nodeEl) {
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const nodeRect = nodeEl.getBoundingClientRect();
+    const dx = nodeRect.left - wrapperRect.left - wrapperRect.width / 2 + nodeRect.width / 2;
+    const dy = nodeRect.top - wrapperRect.top - wrapperRect.height / 2 + nodeRect.height / 2;
+    wrapper.scrollBy({ left: dx, top: dy, behavior: 'smooth' });
+  }
+
+  rootEl.querySelector('.mm-node-label')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleNode(rootEl);
+    centerOnNode(rootEl);
+  });
 }
 
-function getColor(depth, alpha = 0.8) {
-  const colors = [
-    `rgba(217, 119, 6, ${alpha})`,
-    `rgba(2, 132, 199, ${alpha})`,
-    `rgba(16, 185, 129, ${alpha})`,
-    `rgba(99, 102, 241, ${alpha})`,
-    `rgba(245, 158, 11, ${alpha})`,
-  ];
-  return colors[depth % colors.length];
+function buildNode(node, depth) {
+  const el = document.createElement('div');
+  el.className = 'mm-node';
+  el.setAttribute('data-depth', depth);
+
+  const label = document.createElement('div');
+  label.className = 'mm-node-label';
+  label.textContent = node.label || '';
+
+  if (depth === 0) {
+    el.classList.add('expanded');
+  }
+
+  el.appendChild(label);
+
+  if (node.children && node.children.length > 0) {
+    const childrenContainer = document.createElement('div');
+    childrenContainer.className = 'mm-children';
+
+    node.children.forEach((child) => {
+      const childEl = buildNode(child, depth + 1);
+      const childLabel = childEl.querySelector('.mm-node-label');
+      childLabel?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleNode(childEl);
+      });
+      childrenContainer.appendChild(childEl);
+    });
+
+    el.appendChild(childrenContainer);
+  }
+
+  return el;
+}
+
+function toggleNode(nodeEl) {
+  const wasExpanded = nodeEl.classList.contains('expanded');
+  if (wasExpanded) {
+    nodeEl.classList.remove('expanded');
+  } else {
+    nodeEl.classList.add('expanded');
+  }
 }
 
 async function loadHistoryMindmap(fileId) {

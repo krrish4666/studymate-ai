@@ -580,21 +580,175 @@ select.form-input { cursor: pointer; }
 .mindmap-wrapper {
   position: relative;
   width: 100%;
+  min-height: 500px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   background: var(--color-card);
-  overflow: hidden;
+  overflow: auto;
+  cursor: grab;
 }
+.mindmap-wrapper:active { cursor: grabbing; }
 .mindmap-controls {
   display: flex; align-items: center; gap: 16px;
 }
 .hint { font-size: 0.8rem; color: var(--color-muted-text); }
-#mindmap-canvas {
-  width: 100%; height: 560px;
-  cursor: grab;
-  display: block;
+
+.mm-tree {
+  display: flex;
+  justify-content: center;
+  padding: 48px 32px;
+  min-width: fit-content;
+  min-height: fit-content;
+  transform-origin: top center;
+  transition: transform 0.2s ease;
 }
-#mindmap-canvas:active { cursor: grabbing; }
+
+.mm-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.mm-node-label {
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+  max-width: 200px;
+  word-break: break-word;
+  line-height: 1.3;
+}
+
+.mm-node[data-depth="0"] > .mm-node-label {
+  font-size: 1.15rem;
+  padding: 16px 32px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--color-primary) 14%, var(--color-card));
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  font-weight: 700;
+  max-width: 280px;
+}
+
+.mm-node[data-depth="1"] > .mm-node-label {
+  font-size: 0.95rem;
+  padding: 10px 22px;
+  background: color-mix(in srgb, #0284c7 10%, var(--color-card));
+  border-color: #0284c7;
+  color: #0284c7;
+}
+
+.mm-node[data-depth="2"] > .mm-node-label {
+  font-size: 0.85rem;
+  padding: 8px 18px;
+  background: color-mix(in srgb, #16a34a 10%, var(--color-card));
+  border-color: #16a34a;
+  color: #16a34a;
+}
+
+.mm-node[data-depth="3"] > .mm-node-label {
+  font-size: 0.8rem;
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: color-mix(in srgb, #6366f1 10%, var(--color-card));
+  border-color: #6366f1;
+  color: #6366f1;
+}
+
+.mm-node[data-depth="4"] > .mm-node-label {
+  font-size: 0.75rem;
+  padding: 5px 12px;
+  border-radius: 6px;
+  background: color-mix(in srgb, #f59e0b 10%, var(--color-card));
+  border-color: #f59e0b;
+  color: #f59e0b;
+}
+
+.mm-node-label:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+}
+
+.mm-children {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  padding-top: 40px;
+  position: relative;
+}
+
+/* Vertical line from parent down */
+.mm-node > .mm-children::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 2px;
+  height: 20px;
+  background: var(--color-border);
+  transform: translateX(-50%);
+}
+
+/* Horizontal bar connecting children */
+.mm-children::after {
+  content: '';
+  position: absolute;
+  top: 20px;
+  left: 12%;
+  right: 12%;
+  height: 2px;
+  background: var(--color-border);
+}
+
+/* Vertical line from horizontal bar up to each child */
+.mm-children > .mm-node::before {
+  content: '';
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  width: 2px;
+  height: 20px;
+  background: var(--color-border);
+  transform: translateX(-50%);
+}
+
+/* Root does not need an upward connector line */
+.mm-tree > .mm-node::before { display: none; }
+
+/* Collapse/expand animation */
+.mm-node:not(.expanded) > .mm-children {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  padding-top: 0;
+  margin: 0;
+  transition: max-height 0.35s ease, opacity 0.25s ease, padding-top 0.25s ease;
+}
+
+.mm-node.expanded > .mm-children {
+  max-height: 3000px;
+  opacity: 1;
+  transition: max-height 0.4s ease, opacity 0.3s ease 0.05s, padding-top 0.3s ease;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .mindmap-wrapper { min-height: 350px; }
+  .mm-tree { padding: 32px 16px; }
+  .mm-children { gap: 16px; padding-top: 28px; }
+  .mm-node[data-depth="0"] > .mm-node-label { font-size: 1rem; padding: 12px 20px; }
+  .mm-node[data-depth="1"] > .mm-node-label { font-size: 0.85rem; padding: 8px 16px; }
+  .mm-node[data-depth="2"] > .mm-node-label { font-size: 0.8rem; padding: 6px 14px; }
+  .mm-node > .mm-children::before { height: 14px; }
+  .mm-children > .mm-node::before { top: -14px; height: 14px; }
+  .mm-children::after { top: 14px; }
+}
 
 /* Revision uses the shared .notes-document / .notes-content canvas */
 
