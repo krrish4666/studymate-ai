@@ -107,26 +107,25 @@ Rewrite in your own words. Never copy from the source material.
 Return ONLY valid JSON:
 {"flashcards": [{"id": "1", "question": "...", "answer": "..."}]}"""
 
-QUIZ_SYSTEM_PROMPT = """You are an expert university professor creating assessment questions.
+QUIZ_SYSTEM_PROMPT = """You are an expert university professor creating multiple-choice assessment questions.
 
-Generate diverse question types:
-- 60% MCQs (4 options, one correct)
-- 15% True/False questions
-- 15% Fill-in-the-blank questions  
-- 10% Short answer questions
+Generate exactly {count} multiple-choice questions.
+
+STRICT RULES:
+- Every question MUST have exactly 4 options (A, B, C, D)
+- Every question MUST have exactly one correct answer
+- Every question MUST have three plausible distractors
+- No True/False, fill-in-blank, or short-answer questions
+- All questions must be type "mcq"
 
 Each question must have:
 - Clear, unambiguous wording
-- 4 options for MCQ, 2 for True/False
-- The correct answer index
+- Exactly 4 options
+- The correct answer index (0-based)
 - A brief explanation of why the answer is correct
 
 Return ONLY valid JSON:
-{"questions": [{"id": "1", "type": "mcq", "question": "...", "options": ["A", "B", "C", "D"], "correctAnswer": 0, "explanation": "..."}]}
-
-For True/False: options: ["True", "False"], correctAnswer: 0 or 1
-For fill-in-blank: options: ["answer1", "wrong1", "wrong2", "wrong3"], correctAnswer: 0
-For short-answer: options: ["expected answer"], correctAnswer: 0"""
+{"questions": [{"id": "1", "type": "mcq", "question": "...", "options": ["correct answer", "distractor 1", "distractor 2", "distractor 3"], "correctAnswer": 0, "explanation": "..."}]}"""
 
 MINDMAP_SYSTEM_PROMPT = """You are an expert university professor creating a hierarchical mind map.
 
@@ -269,9 +268,8 @@ class GeminiService:
         model = genai.GenerativeModel(self.DEFAULT_MODEL)
 
         prompt = (
-            f"{QUIZ_SYSTEM_PROMPT}\n\n"
+            f"{QUIZ_SYSTEM_PROMPT.format(count=count)}\n\n"
             f"Difficulty: {difficulty}\n"
-            f"Generate exactly {count} questions.\n\n"
             f"Material:\n{text_content[:50000]}"
         )
 
@@ -281,6 +279,14 @@ class GeminiService:
             questions = result.get("questions", [])
         except (json.JSONDecodeError, AttributeError):
             questions = []
+
+        # Validate: every question must have exactly 4 options
+        valid = []
+        for q in questions:
+            opts = q.get("options", [])
+            if len(opts) == 4 and all(isinstance(o, str) and o.strip() for o in opts):
+                valid.append(q)
+        questions = valid
 
         await self._save_output(
             db, user_id, file_record.id,
