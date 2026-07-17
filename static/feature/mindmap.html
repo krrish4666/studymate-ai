@@ -9,7 +9,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <link rel="stylesheet" href="/static/css/styles.css?v=2">
+  <link rel="stylesheet" href="/static/css/styles.css?v=5">
 </head>
 <body>
   <header>
@@ -88,12 +88,12 @@
     </section>
   </main>
 
-  <script src="/static/js/upload.js?v=7" defer></script>
+  <script src="/static/js/upload.js?v=8" defer></script>
   <script type="module">
-    import { requireAuth } from '/static/js/auth.js';
-    import { initMindmap } from '/static/js/features/mindmap.js?v=7';
+    import { requireAuth } from '/static/js/auth.js?v=2';
+    import { initMindmap } from '/static/js/features/mindmap.js?v=8';
     if (requireAuth()) initMindmap();
   </script>
-  <script type="module" src="/static/js/main.js?v=2"></script>
+  <script type="module" src="/static/js/main.js?v=3"></script>
 </body>
 </html>

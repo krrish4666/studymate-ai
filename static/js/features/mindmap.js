@@ -49,12 +49,6 @@ export async function initMindmap() {
         const err = await res.json().catch(() => ({ detail: 'Generation failed' }));
         const errDetail = err.detail || 'Generation failed';
         hide(loadingScreen);
-        show(output, 'block');
-        if (output) {
-          output.hidden = false;
-          output.style.display = 'block';
-        }
-        output.innerHTML = `<div class="card" style="padding:40px;text-align:center;"><p style="color:var(--color-error);font-weight:600;font-size:1.1rem;">${errDetail}</p></div>`;
         showToast(errDetail, 'error');
         if (fileStatus) {
           fileStatus.textContent = 'Generation failed';
@@ -69,12 +63,7 @@ export async function initMindmap() {
       currentMindmap = data.mindmap;
       if (!currentMindmap) {
         hide(loadingScreen);
-        show(output, 'block');
-        if (output) {
-          output.hidden = false;
-          output.style.display = 'block';
-        }
-        output.innerHTML = '<p style="color:var(--color-muted-text);text-align:center;padding:40px;">No mindmap generated</p>';
+        showToast('No mindmap could be generated from this file', 'warning');
         if (fileStatus) {
           fileStatus.textContent = 'No mindmap generated';
           fileStatus.className = 'file-status error';
@@ -99,13 +88,7 @@ export async function initMindmap() {
       show(downloadBtn);
     } catch (err) {
       hide(loadingScreen);
-      show(output, 'block');
-      if (output) {
-        output.hidden = false;
-        output.style.display = 'block';
-      }
       const errMsg = err.message || 'Generation error';
-      output.innerHTML = `<div class="card" style="padding:40px;text-align:center;"><p style="color:var(--color-error);font-weight:600;font-size:1.1rem;">${errMsg}</p></div>`;
       showToast(errMsg, 'error');
       if (fileStatus) {
         fileStatus.textContent = 'Generation failed';
@@ -147,14 +130,35 @@ export async function initMindmap() {
 }
 
 function renderMindmap(root) {
-  const tree = document.getElementById('mindmap-tree');
-  if (!tree) return;
+  if (!root || !root.label) {
+    showToast('Invalid mind map data', 'error');
+    return;
+  }
+  let wrapper = document.getElementById('mindmap-wrapper');
+  let tree = document.getElementById('mindmap-tree');
+  const output = document.getElementById('feature-output');
+
+  if (!tree || !wrapper) {
+    const oldCanvas = document.getElementById('mindmap-canvas');
+    if (oldCanvas) oldCanvas.remove();
+    if (!wrapper) {
+      wrapper = document.createElement('div');
+      wrapper.id = 'mindmap-wrapper';
+      wrapper.className = 'mindmap-wrapper';
+      if (output) output.appendChild(wrapper);
+    }
+    if (!tree) {
+      tree = document.createElement('div');
+      tree.id = 'mindmap-tree';
+      tree.className = 'mm-tree';
+      wrapper.appendChild(tree);
+    }
+  }
 
   tree.innerHTML = '';
   const rootEl = buildNode(root, 0);
   tree.appendChild(rootEl);
 
-  const wrapper = document.getElementById('mindmap-wrapper');
   let isDragging = false;
   let startX, startY, scrollLeft, scrollTop;
   let zoom = 1;
@@ -209,15 +213,23 @@ function renderMindmap(root) {
   function centerOnNode(nodeEl) {
     const wrapperRect = wrapper.getBoundingClientRect();
     const nodeRect = nodeEl.getBoundingClientRect();
-    const dx = nodeRect.left - wrapperRect.left - wrapperRect.width / 2 + nodeRect.width / 2;
-    const dy = nodeRect.top - wrapperRect.top - wrapperRect.height / 2 + nodeRect.height / 2;
-    wrapper.scrollBy({ left: dx, top: dy, behavior: 'smooth' });
+    const padding = 40;
+    const targetX = nodeRect.left - wrapperRect.left - (wrapperRect.width - nodeRect.width) / 2;
+    const targetY = nodeRect.top - wrapperRect.top - padding;
+    wrapper.scrollBy({ left: targetX, top: targetY, behavior: 'smooth' });
+  }
+
+  function handleNodeClick(nodeEl) {
+    const wasExpanded = nodeEl.classList.contains('expanded');
+    toggleNode(nodeEl);
+    if (!wasExpanded) {
+      setTimeout(() => centerOnNode(nodeEl), 100);
+    }
   }
 
   rootEl.querySelector('.mm-node-label')?.addEventListener('click', (e) => {
     e.stopPropagation();
-    toggleNode(rootEl);
-    centerOnNode(rootEl);
+    handleNodeClick(rootEl);
   });
 }
 
@@ -245,7 +257,20 @@ function buildNode(node, depth) {
       const childLabel = childEl.querySelector('.mm-node-label');
       childLabel?.addEventListener('click', (e) => {
         e.stopPropagation();
+        const wasExpanded = childEl.classList.contains('expanded');
         toggleNode(childEl);
+        if (!wasExpanded) {
+          const wrapper = document.getElementById('mindmap-wrapper');
+          if (wrapper) {
+            setTimeout(() => {
+              const wrapperRect = wrapper.getBoundingClientRect();
+              const nodeRect = childEl.getBoundingClientRect();
+              const targetX = nodeRect.left - wrapperRect.left - (wrapperRect.width - nodeRect.width) / 2;
+              const targetY = nodeRect.top - wrapperRect.top - 40;
+              wrapper.scrollBy({ left: targetX, top: targetY, behavior: 'smooth' });
+            }, 100);
+          }
+        }
       });
       childrenContainer.appendChild(childEl);
     });
