@@ -109,8 +109,6 @@ Return ONLY valid JSON:
 
 QUIZ_SYSTEM_PROMPT = """You are an expert university professor creating multiple-choice assessment questions.
 
-Generate exactly {count} multiple-choice questions.
-
 STRICT RULES:
 - Every question MUST have exactly 4 options (A, B, C, D)
 - Every question MUST have exactly one correct answer
@@ -268,7 +266,8 @@ class GeminiService:
         model = genai.GenerativeModel(self.DEFAULT_MODEL)
 
         prompt = (
-            f"{QUIZ_SYSTEM_PROMPT.format(count=count)}\n\n"
+            f"{QUIZ_SYSTEM_PROMPT}\n\n"
+            f"Generate exactly {count} multiple-choice questions.\n\n"
             f"Difficulty: {difficulty}\n"
             f"Material:\n{text_content[:50000]}"
         )
