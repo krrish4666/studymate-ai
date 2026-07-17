@@ -1,5 +1,5 @@
 import { apiPost } from '../api.js';
-import { showToast, $, hide, show } from '../utils.js';
+import { showToast, hide, show } from '../utils.js';
 
 export async function initFlashcards() {
   const fileId = new URLSearchParams(location.search).get('historyId');
@@ -11,8 +11,6 @@ export async function initFlashcards() {
   const downloadBtn = document.getElementById('download-pdf');
 
   let flashcards = [];
-  let currentIndex = 0;
-  let isFlipped = false;
   let isGenerating = false;
 
   StudyMateUpload.init();
@@ -32,70 +30,58 @@ export async function initFlashcards() {
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: 'Generation failed' }));
         hide(loadingScreen);
-        show(output);
-        output.innerHTML = `<div class="card" style="padding:40px;text-align:center;"><p style="color:var(--color-error)">${err.detail}</p></div>`;
+        showToast(err.detail || 'Generation failed', 'error');
         return;
       }
       const data = await res.json();
       flashcards = data.flashcards || [];
       if (flashcards.length === 0) {
         hide(loadingScreen);
-        show(output);
-        output.innerHTML = '<p style="color:var(--color-muted-text);text-align:center;padding:40px;">No flashcards generated</p>';
+        showToast('No flashcards could be generated from this file', 'warning');
         return;
       }
-      currentIndex = 0;
-      isFlipped = false;
       hide(loadingScreen);
       show(output);
       show(downloadBtn);
-      renderFlashcard();
+      renderFlashcardGrid();
     } catch (err) {
       hide(loadingScreen);
-      show(output);
-      output.innerHTML = `<p style="color:var(--color-error)">${err.message}</p>`;
+      showToast(err.message || 'An unexpected error occurred', 'error');
     } finally {
       generateBtn.disabled = false;
       isGenerating = false;
     }
   });
 
-  function renderFlashcard() {
-    if (!flashcards.length) return;
-    const fc = flashcards[currentIndex];
-    if (!fc) return;
+  function renderFlashcardGrid() {
+    const grid = document.getElementById('flashcard-grid');
+    grid.innerHTML = '';
+    const fragment = document.createDocumentFragment();
 
-    document.getElementById('flashcard-progress').textContent = `Card ${currentIndex + 1} of ${flashcards.length}`;
-    document.getElementById('card-question').textContent = fc.question || 'No question';
-    document.getElementById('card-answer').textContent = fc.answer || 'No answer';
+    flashcards.forEach((fc, i) => {
+      const card = document.createElement('div');
+      card.className = 'flashcard';
+      card.style.animationDelay = `${i * 50}ms`;
+      card.innerHTML = `
+        <div class="flashcard-inner">
+          <div class="flashcard-front">
+            <span class="card-label">Question</span>
+            <p class="card-text">${fc.question || 'No question'}</p>
+          </div>
+          <div class="flashcard-back">
+            <span class="card-label">Answer</span>
+            <p class="card-text">${fc.answer || 'No answer'}</p>
+          </div>
+        </div>
+      `;
+      card.addEventListener('click', () => {
+        card.classList.toggle('flipped');
+      });
+      fragment.appendChild(card);
+    });
 
-    const flashcard = document.getElementById('flashcard');
-    flashcard.classList.remove('flipped');
-    isFlipped = false;
-
-    document.getElementById('prev-card').disabled = currentIndex === 0;
-    document.getElementById('next-card').disabled = currentIndex === flashcards.length - 1;
+    grid.appendChild(fragment);
   }
-
-  document.getElementById('flip-card')?.addEventListener('click', () => {
-    const flashcard = document.getElementById('flashcard');
-    isFlipped = !isFlipped;
-    flashcard.classList.toggle('flipped');
-  });
-
-  document.getElementById('prev-card')?.addEventListener('click', () => {
-    if (currentIndex > 0) {
-      currentIndex--;
-      renderFlashcard();
-    }
-  });
-
-  document.getElementById('next-card')?.addEventListener('click', () => {
-    if (currentIndex < flashcards.length - 1) {
-      currentIndex++;
-      renderFlashcard();
-    }
-  });
 
   document.getElementById('shuffle-btn')?.addEventListener('click', () => {
     if (flashcards.length < 2) return;
@@ -103,25 +89,8 @@ export async function initFlashcards() {
       const j = Math.floor(Math.random() * (i + 1));
       [flashcards[i], flashcards[j]] = [flashcards[j], flashcards[i]];
     }
-    currentIndex = 0;
-    renderFlashcard();
+    renderFlashcardGrid();
     showToast('Cards shuffled', 'info');
-  });
-
-  document.addEventListener('keydown', (e) => {
-    if (output.hidden) return;
-    if (e.key === 'ArrowLeft' && currentIndex > 0) {
-      currentIndex--;
-      renderFlashcard();
-    }
-    if (e.key === 'ArrowRight' && currentIndex < flashcards.length - 1) {
-      currentIndex++;
-      renderFlashcard();
-    }
-    if (e.key === ' ' || e.key === 'Enter') {
-      e.preventDefault();
-      document.getElementById('flip-card')?.click();
-    }
   });
 
   downloadBtn?.addEventListener('click', async () => {
@@ -154,31 +123,51 @@ async function loadHistoryFlashcards(fileId) {
     if (flashcards.length > 0) {
       show(output);
       StudyMateUpload.setFromHistory(fileId);
-      let idx = 0;
-      const fc = flashcards[idx];
-      document.getElementById('flashcard-progress').textContent = `Card 1 of ${flashcards.length}`;
-      document.getElementById('card-question').textContent = fc.question || 'No question';
-      document.getElementById('card-answer').textContent = fc.answer || 'No answer';
-      const flashcard = document.getElementById('flashcard');
-      flashcard.classList.remove('flipped');
-      document.getElementById('prev-card').disabled = true;
-      document.getElementById('next-card').disabled = flashcards.length === 1;
-      document.getElementById('flip-card').onclick = () => flashcard.classList.toggle('flipped');
-      document.getElementById('prev-card').onclick = () => {
-        if (idx > 0) { idx--; showCard(idx); }
-      };
-      document.getElementById('next-card').onclick = () => {
-        if (idx < flashcards.length - 1) { idx++; showCard(idx); }
-      };
-      function showCard(i) {
-        const c = flashcards[i];
-        document.getElementById('flashcard-progress').textContent = `Card ${i + 1} of ${flashcards.length}`;
-        document.getElementById('card-question').textContent = c.question;
-        document.getElementById('card-answer').textContent = c.answer;
-        flashcard.classList.remove('flipped');
-        document.getElementById('prev-card').disabled = i === 0;
-        document.getElementById('next-card').disabled = i === flashcards.length - 1;
-      }
+      show(document.getElementById('download-pdf'));
+      const grid = document.getElementById('flashcard-grid');
+      grid.innerHTML = '';
+      const fragment = document.createDocumentFragment();
+
+      flashcards.forEach((fc, i) => {
+        const card = document.createElement('div');
+        card.className = 'flashcard';
+        card.style.animationDelay = `${i * 50}ms`;
+        card.innerHTML = `
+          <div class="flashcard-inner">
+            <div class="flashcard-front">
+              <span class="card-label">Question</span>
+              <p class="card-text">${fc.question || 'No question'}</p>
+            </div>
+            <div class="flashcard-back">
+              <span class="card-label">Answer</span>
+              <p class="card-text">${fc.answer || 'No answer'}</p>
+            </div>
+          </div>
+        `;
+        card.addEventListener('click', () => {
+          card.classList.toggle('flipped');
+        });
+        fragment.appendChild(card);
+      });
+
+      grid.appendChild(fragment);
+
+      document.getElementById('download-pdf')?.addEventListener('click', async () => {
+        if (!flashcards.length) return;
+        const token = localStorage.getItem('studymate-token');
+        const res = await fetch('/api/v1/export/pdf', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ feature: 'flashcards', outputJson: { flashcards } }),
+        });
+        if (res.ok) {
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = 'flashcards.pdf'; a.click();
+          URL.revokeObjectURL(url);
+        }
+      });
     }
   } catch {}
 }

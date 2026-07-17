@@ -9,7 +9,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <link rel="stylesheet" href="/static/css/styles.css?v=2">
+  <link rel="stylesheet" href="/static/css/styles.css?v=4">
 </head>
 <body>
   <header>
@@ -75,38 +75,19 @@
 
     <section id="feature-output" class="feature-output" hidden>
       <div class="flashcard-controls-top">
-        <span id="flashcard-progress" class="flashcard-progress">Card 1 of 10</span>
         <button class="btn btn-secondary btn-sm" id="shuffle-btn">Shuffle</button>
         <button class="btn btn-primary btn-sm" id="download-pdf" hidden>Download PDF</button>
       </div>
-      <div id="flashcard-container" class="flashcard-container">
-        <div class="flashcard" id="flashcard">
-          <div class="flashcard-inner">
-            <div class="flashcard-front">
-              <span class="card-label">Question</span>
-              <p class="card-text" id="card-question"></p>
-            </div>
-            <div class="flashcard-back">
-              <span class="card-label">Answer</span>
-              <p class="card-text" id="card-answer"></p>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="flashcard-nav">
-        <button class="btn btn-secondary" id="prev-card" disabled>Previous</button>
-        <button class="btn btn-primary" id="flip-card">Flip Card</button>
-        <button class="btn btn-secondary" id="next-card">Next</button>
-      </div>
+      <div id="flashcard-grid" class="flashcard-grid"></div>
     </section>
   </main>
 
-  <script src="/static/js/upload.js?v=3" defer></script>
+  <script src="/static/js/upload.js?v=4" defer></script>
   <script type="module">
-    import { requireAuth } from '/static/js/auth.js';
-    import { initFlashcards } from '/static/js/features/flashcards.js';
+    import { requireAuth } from '/static/js/auth.js?v=2';
+    import { initFlashcards } from '/static/js/features/flashcards.js?v=4';
     if (requireAuth()) initFlashcards();
   </script>
-  <script type="module" src="/static/js/main.js?v=2"></script>
+  <script type="module" src="/static/js/main.js?v=3"></script>
 </body>
 </html>
