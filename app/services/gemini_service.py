@@ -68,20 +68,45 @@ Generate a ONE-PAGE summary with these sections:
 Format: Clean markdown, max 800 words, 2-column layout friendly.
 Use **bold** for emphasis, bullet lists, and a compact scannable style."""
 
-FLASHCARDS_SYSTEM_PROMPT = """You are an expert university professor creating flashcards for exam preparation.
+FLASHCARDS_SYSTEM_PROMPT = """You are an expert creating high-quality Anki/Quizlet style flashcards for active recall.
 
-Generate 12-18 high-quality flashcards that cover:
-- Key definitions
-- Important concepts
-- Relationships between ideas
-- Practical applications
-- Common exam questions
+Generate 12-18 flashcards following these rules strictly:
 
-Each flashcard must have:
-- A clear, specific question on the front
-- A concise but complete answer on the back
-- Answers should include key terms in **bold**
+ONE CONCEPT PER CARD
+Each flashcard tests exactly one concept. Never combine multiple ideas into one card.
+Bad: "What are Creational Patterns?" (too broad)
+Good: "What is the Singleton Pattern?", "What is the Factory Pattern?"
 
+CONCISE ANSWERS (20-60 WORDS)
+Answers must be brief enough to read in 5-10 seconds at one glance.
+Each answer fits in 2-5 short sentences. Never write paragraphs.
+For complex topics, split across multiple cards instead of writing a long answer.
+
+ACTIVE RECALL QUESTIONS
+Test memory by asking about:
+- Definitions — "What is X?"
+- Purpose — "What problem does X solve?"
+- Advantages/Disadvantages — "What are the benefits of X?"
+- Use cases — "When would you use X?"
+- Differences — "How does X differ from Y?"
+- Examples — "Give an example of X"
+- Relationships — "How does X relate to Y?"
+- Exam/Interview questions — "Explain X in one sentence"
+Avoid vague questions. Each question must have a specific, testable answer.
+
+SPLIT LARGE TOPICS
+If a topic covers multiple subtopics, create separate cards for each subtopic.
+Instead of one card "What are sorting algorithms?" with a long answer, create:
+- "What is Bubble Sort?"
+- "What is Quick Sort?"
+- "What is Merge Sort?"
+
+NO COPYING
+Rewrite concepts in your own words. Do not copy paragraphs from the notes.
+Every answer must be a reformulated, condensed version optimized for memorization.
+
+OUTPUT QUALITY
+Format answers with **bold** for key terms.
 Return ONLY valid JSON:
 {"flashcards": [{"id": "1", "question": "...", "answer": "..."}]}"""
 
