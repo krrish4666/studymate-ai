@@ -1,4 +1,7 @@
-import { showToast, markdownToHtml, $, hide, show } from '../utils.js';
+import { showToast, hide, show } from '../utils.js?v=7';
+import { renderDocHtml, typesetMath, exportDocPdf, decodeStreamChunk } from '../doc-renderer.js?v=1';
+
+const exportRevisionPdf = () => exportDocPdf('revision-content', 'Revision Cheat Sheet');
 
 export async function initRevision() {
   const fileId = new URLSearchParams(location.search).get('historyId');
@@ -18,92 +21,137 @@ export async function initRevision() {
   generateBtn?.addEventListener('click', async () => {
     if (isGenerating) return;
     const fileRecordId = StudyMateUpload.getCurrentFileId();
-    if (!fileRecordId) return;
-
-    isGenerating = true;
-    generateBtn.disabled = true;
-    hide(output);
-    show(loadingScreen);
-
-    const token = localStorage.getItem('studymate-token');
-    const res = await fetch(`/api/v1/features/revision`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify({ fileRecordId }),
-    });
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Generation failed' }));
-      hide(loadingScreen);
-      show(output);
-      output.innerHTML = `<div class="card" style="padding:40px;text-align:center;"><p style="color:var(--color-error)">${err.detail}</p></div>`;
-      generateBtn.disabled = false;
-      isGenerating = false;
+    if (!fileRecordId) {
+      showToast('Please select a file first', 'error');
       return;
     }
 
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    currentContent = '';
+    isGenerating = true;
+    generateBtn.disabled = true;
+    const originalBtnText = generateBtn.textContent;
+    generateBtn.textContent = 'Generating Sheet...';
 
-    let stepOrder = ['analyzing', 'generating', 'formatting', 'finalizing'];
-    let stepIndex = 0;
-    let stepTimer = setInterval(() => {
-      if (stepIndex < stepOrder.length - 1) {
-        stepIndex++;
-        updateLoadingStep(stepOrder[stepIndex]);
-      }
-    }, 3000);
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      const text = decoder.decode(value, { stream: true });
-      const lines = text.split('\n');
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6);
-          if (data === '[DONE]') {
-            clearInterval(stepTimer);
-            hide(loadingScreen);
-            show(output);
-            revisionContent.innerHTML = markdownToHtml(currentContent);
-            show(downloadBtn);
-            continue;
-          }
-          if (data.startsWith('[ERROR]')) {
-            clearInterval(stepTimer);
-            hide(loadingScreen);
-            show(output);
-            output.innerHTML = `<div class="card" style="padding:40px;text-align:center;"><p style="color:var(--color-error)">${data.slice(7)}</p></div>`;
-            generateBtn.disabled = false;
-            isGenerating = false;
-            continue;
-          }
-          currentContent += data;
-        }
-      }
+    const fileStatus = document.getElementById('file-status') || (document.getElementById('file-info') && document.getElementById('file-info').querySelector('.file-status'));
+    if (fileStatus) {
+      fileStatus.textContent = 'Generating revision sheet...';
+      fileStatus.className = 'file-status info';
     }
-    generateBtn.disabled = false;
-    isGenerating = false;
-  });
 
-  downloadBtn?.addEventListener('click', async () => {
-    if (!currentContent) return;
+    hide(output);
+    show(loadingScreen, 'block');
+    if (loadingScreen) {
+      loadingScreen.hidden = false;
+      loadingScreen.style.display = 'block';
+    }
+    updateLoadingStep('analyzing');
+
+    const showError = (msg) => {
+      hide(loadingScreen);
+      show(output, 'block');
+      if (output) {
+        output.hidden = false;
+        output.style.display = 'block';
+      }
+      output.innerHTML = `<div class="card" style="padding:40px;text-align:center;"><p style="color:var(--color-error);font-weight:600;font-size:1.1rem;">${msg}</p></div>`;
+      showToast(msg, 'error');
+      if (fileStatus) {
+        fileStatus.textContent = 'Generation failed';
+        fileStatus.className = 'file-status error';
+      }
+    };
+
     const token = localStorage.getItem('studymate-token');
-    const res = await fetch('/api/v1/export/pdf', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify({ feature: 'revision', outputText: currentContent }),
-    });
-    if (res.ok) {
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = 'revision.pdf'; a.click();
-      URL.revokeObjectURL(url);
+    try {
+      const res = await fetch(`/api/v1/features/revision`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ fileRecordId }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: 'Generation failed' }));
+        showError(err.detail || 'Generation failed');
+        return;
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      currentContent = '';
+
+      let stepOrder = ['analyzing', 'generating', 'formatting', 'finalizing'];
+      let stepIndex = 0;
+      let stepTimer = setInterval(() => {
+        if (stepIndex < stepOrder.length - 1) {
+          stepIndex++;
+          updateLoadingStep(stepOrder[stepIndex]);
+        }
+      }, 3000);
+
+      let buffer = '';
+      let isDone = false;
+      let hadError = false;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) {
+          const trimmed = line.trimRight();
+          if (trimmed.startsWith('data: ')) {
+            const data = trimmed.slice(6);
+            if (data === '[DONE]') {
+              isDone = true;
+              break;
+            }
+            if (data.startsWith('[ERROR]')) {
+              isDone = true;
+              hadError = true;
+              clearInterval(stepTimer);
+              showError(data.slice(7));
+              break;
+            }
+            if (!currentContent) {
+              updateLoadingStep('generating');
+              if (fileStatus) fileStatus.textContent = 'Generating revision sheet...';
+            }
+            currentContent += decodeStreamChunk(data, !!currentContent);
+          }
+        }
+        if (isDone) break;
+      }
+      clearInterval(stepTimer);
+
+      if (!hadError && currentContent) {
+        hide(loadingScreen);
+        show(output, 'block');
+        if (output) {
+          output.hidden = false;
+          output.style.display = 'block';
+        }
+        if (revisionContent) {
+          revisionContent.innerHTML = renderDocHtml(currentContent);
+          typesetMath(revisionContent);
+        }
+        show(downloadBtn, 'inline-block');
+        if (fileStatus) {
+          fileStatus.textContent = 'Revision sheet generated successfully';
+          fileStatus.className = 'file-status success';
+        }
+        showToast('Revision sheet generated successfully!', 'success');
+      } else if (!hadError && !currentContent) {
+        showError('No content generated');
+      }
+    } catch (err) {
+      showError(err.message || 'Generation error');
+    } finally {
+      generateBtn.disabled = false;
+      generateBtn.textContent = originalBtnText || 'Generate Revision Sheet';
+      isGenerating = false;
     }
   });
+
+  downloadBtn?.addEventListener('click', exportRevisionPdf);
 }
 
 function updateLoadingStep(stepId) {
@@ -127,12 +175,18 @@ async function loadHistoryRevision(fileId) {
     const res = await fetch(`/api/v1/history/${fileId}`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
+    if (!res.ok) throw new Error('Not found');
     const data = await res.json();
     if (data.output?.outputText) {
-      show(output);
-      revisionContent.innerHTML = markdownToHtml(data.output.outputText);
-      show(downloadBtn);
+      show(output, 'block');
+      revisionContent.innerHTML = renderDocHtml(data.output.outputText);
+      typesetMath(revisionContent);
+      show(downloadBtn, 'inline-block');
+      downloadBtn?.addEventListener('click', exportRevisionPdf);
       StudyMateUpload.setFromHistory(fileId);
     }
-  } catch {}
+  } catch {
+    show(output, 'block');
+    output.innerHTML = '<p style="color:var(--color-error)">Failed to load history</p>';
+  }
 }
