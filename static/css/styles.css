@@ -293,64 +293,129 @@ select.form-input { cursor: pointer; }
 }
 .output-header h2 { font-size: 1.3rem; }
 
-/* Notes Content */
-.notes-content {
-  max-width: var(--max-content-width);
+/* Notes Viewer — document-style reading canvas */
+.notes-document {
+  max-width: 760px;
   margin: 0 auto;
-  padding: 0 8px;
-}
-.notes-content h1 { font-size: 1.75rem; margin: 32px 0 12px; color: var(--color-primary); }
-.notes-content h2 { font-size: 1.35rem; margin: 28px 0 10px; border-bottom: 1px solid var(--color-border); padding-bottom: 6px; }
-.notes-content h3 { font-size: 1.1rem; margin: 24px 0 8px; }
-.notes-content p { margin-bottom: 12px; line-height: 1.8; font-size: 0.95rem; }
-.notes-content ul, .notes-content ol { padding-left: 28px; margin-bottom: 12px; }
-.notes-content li { margin-bottom: 6px; line-height: 1.7; font-size: 0.95rem; }
-.notes-content li > ul, .notes-content li > ol { margin-top: 4px; margin-bottom: 4px; }
-.notes-content strong { color: var(--color-primary); }
-.notes-content em { color: var(--color-muted-text); }
-.notes-content code {
-  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-background));
-  padding: 2px 8px; border-radius: 4px;
-  font-size: 0.85em; font-family: 'JetBrains Mono', 'Fira Code', monospace;
-}
-.notes-content pre {
   background: var(--color-card);
   border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 56px 64px;
+}
+.notes-content {
+  font-size: 1rem;
+  line-height: 1.75;
+  color: var(--color-text);
+}
+
+/* Headings — clear hierarchy, accent reserved for the document title */
+.notes-content h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--color-primary);
+  margin: 0 0 8px;
+  padding-bottom: 14px;
+  border-bottom: 2px solid var(--color-border);
+}
+.notes-content h1:not(:first-child) { margin-top: 40px; }
+.notes-content h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--color-text);
+  margin: 40px 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+.notes-content h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 28px 0 10px;
+}
+.notes-content h4 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 22px 0 8px;
+}
+
+/* Body text — consistent color, comfortable rhythm */
+.notes-content p { margin: 0 0 16px; }
+.notes-content strong { font-weight: 700; color: inherit; }
+.notes-content em { font-style: italic; color: inherit; }
+
+/* Lists — consistent indentation and spacing */
+.notes-content ul, .notes-content ol { margin: 0 0 16px; padding-left: 26px; }
+.notes-content li { margin-bottom: 6px; }
+.notes-content li::marker { color: var(--color-muted-text); }
+.notes-content li > ul, .notes-content li > ol { margin: 6px 0 0; }
+.notes-content li p { margin-bottom: 6px; }
+
+/* Inline code & code blocks */
+.notes-content code {
+  background: color-mix(in srgb, var(--color-border) 40%, var(--color-card));
+  border: 1px solid var(--color-border);
+  padding: 1px 6px; border-radius: 4px;
+  font-size: 0.875em; font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  color: inherit;
+}
+.notes-content pre {
+  background: color-mix(in srgb, var(--color-border) 25%, var(--color-card));
+  border: 1px solid var(--color-border);
   padding: 16px 20px; border-radius: 8px;
-  overflow-x: auto; margin: 16px 0;
-  font-size: 0.85rem; line-height: 1.6;
+  overflow-x: auto; margin: 0 0 20px;
+  font-size: 0.875rem; line-height: 1.6;
 }
-.notes-content pre code { background: none; padding: 0; }
+.notes-content pre code { background: none; border: none; padding: 0; }
+
+/* Blockquotes — subtle callout, accent only on the rule */
 .notes-content blockquote {
-  border-left: 4px solid var(--color-primary);
+  border-left: 3px solid var(--color-primary);
   padding: 12px 20px;
-  margin: 16px 0;
-  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-card));
+  margin: 0 0 20px;
+  background: color-mix(in srgb, var(--color-primary) 5%, var(--color-card));
   border-radius: 0 8px 8px 0;
-  font-style: italic;
-  color: var(--color-muted-text);
+  color: var(--color-text);
 }
-.notes-content blockquote strong { color: var(--color-text); }
+.notes-content blockquote p:last-child { margin-bottom: 0; }
+
+/* Tables */
 .notes-content table {
   width: 100%; border-collapse: collapse;
-  margin: 16px 0;
-  font-size: 0.9rem;
+  margin: 0 0 20px;
+  font-size: 0.925rem;
 }
 .notes-content th, .notes-content td {
   border: 1px solid var(--color-border);
   padding: 10px 14px;
   text-align: left;
+  vertical-align: top;
 }
 .notes-content th {
-  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-card));
+  background: color-mix(in srgb, var(--color-border) 35%, var(--color-card));
   font-weight: 600;
 }
-.notes-content tr:nth-child(even) { background: color-mix(in srgb, var(--color-border) 30%, var(--color-card)); }
+.notes-content tbody tr:nth-child(even) { background: color-mix(in srgb, var(--color-border) 15%, var(--color-card)); }
+
+/* Section dividers */
 .notes-content hr {
-  border: none; border-top: 2px solid var(--color-border);
-  margin: 28px 0;
+  border: none; border-top: 1px solid var(--color-border);
+  margin: 36px 0;
 }
 .notes-content img { max-width: 100%; border-radius: 8px; margin: 16px 0; }
+.notes-content a { color: var(--color-primary); text-decoration: underline; text-underline-offset: 2px; }
+
+/* Math (KaTeX) */
+.notes-content .katex { font-size: 1.05em; }
+.notes-content .katex-display {
+  margin: 20px 0;
+  padding: 8px 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
 
 /* Related Actions */
 .related-actions { margin-top: 40px; animation: fadeIn 0.5s ease; }
@@ -655,7 +720,7 @@ select.form-input { cursor: pointer; }
   .auth-card { padding: 24px; }
   .revision-content { columns: 1; }
   .flashcard { max-width: 100%; height: 280px; }
-  .notes-content { padding: 0; }
+  .notes-document { padding: 28px 20px; }
   .controls-row { flex-direction: column; align-items: stretch; }
   .controls-row select { width: 100% !important; }
   .action-buttons { grid-template-columns: repeat(2, 1fr); }

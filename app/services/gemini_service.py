@@ -187,9 +187,9 @@ class GeminiService:
             for chunk in response:
                 if chunk.text:
                     full_text += chunk.text
-                    lines = chunk.text.split("\n")
-                    formatted = "\n".join(f"data: {line}" for line in lines)
-                    yield f"{formatted}\n\n"
+                    # JSON-encode each chunk so newlines survive SSE framing
+                    # and the client can reconstruct the text exactly.
+                    yield f"data: {json.dumps(chunk.text)}\n\n"
 
             yield "data: [DONE]\n\n"
             await self._save_output(db, user_id, file_record.id, None, full_text)

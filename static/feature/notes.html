@@ -9,7 +9,12 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <link rel="stylesheet" href="/static/css/styles.css?v=5">
+  <link rel="stylesheet" href="/static/css/styles.css?v=6">
+  <!-- Markdown + Math rendering for the Notes Viewer -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js" defer></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" defer></script>
 </head>
 <body>
   <header>
@@ -85,7 +90,9 @@
         <h2>Generated Notes</h2>
         <button class="btn btn-primary btn-sm" id="download-pdf" hidden>Download PDF</button>
       </div>
-      <div id="notes-content" class="notes-content"></div>
+      <div class="notes-document">
+        <div id="notes-content" class="notes-content"></div>
+      </div>
     </section>
 
     <section id="related-actions" class="related-actions" hidden>
@@ -114,7 +121,7 @@
   <script src="/static/js/upload.js?v=6" defer></script>
   <script type="module">
     import { requireAuth } from '/static/js/auth.js';
-    import { initNotes } from '/static/js/features/notes.js?v=8';
+    import { initNotes } from '/static/js/features/notes.js?v=10';
     if (requireAuth()) initNotes();
   </script>
   <script type="module" src="/static/js/main.js?v=2"></script>
