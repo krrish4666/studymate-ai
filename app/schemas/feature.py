@@ -24,9 +24,11 @@ class QuizRequest(BaseModel):
 
 class QuizQuestion(BaseModel):
     id: str
+    type: str = "mcq"
     question: str
     options: list[str]
     correctAnswer: int
+    explanation: str = ""
 
 
 class QuizQuestionResponse(BaseModel):

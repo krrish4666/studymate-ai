@@ -1,5 +1,6 @@
 import uuid
 import secrets
+import logging
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select
@@ -12,6 +13,7 @@ from app.core.security import (
     create_access_token,
     encrypt_data,
     decrypt_data,
+    hmac_compare,
 )
 from app.core.exceptions import (
     BadRequestError,
@@ -21,6 +23,8 @@ from app.core.exceptions import (
 )
 from app.models.user import User, Account, VerificationToken
 from app.services.email_service import email_service
+
+logger = logging.getLogger(__name__)
 
 
 class AuthService:
@@ -49,7 +53,12 @@ class AuthService:
         self.db.add(account)
         await self.db.flush()
 
-        token = create_access_token(user.id)
+        token = create_access_token(
+            user.id,
+            name=user.name,
+            email=user.email,
+            image=user.image,
+        )
         return user, token
 
     async def login(self, email: str, password: str) -> tuple[User, str]:
@@ -60,53 +69,106 @@ class AuthService:
         if not verify_password(password, user.passwordHash):
             raise UnauthorizedError("Invalid email or password")
 
-        token = create_access_token(user.id)
+        token = create_access_token(
+            user.id,
+            name=user.name,
+            email=user.email,
+            image=user.image,
+        )
         return user, token
 
-    async def google_login_url(self) -> str:
+    async def google_login_url(self) -> tuple[str, str]:
         from authlib.integrations.httpx_client import OAuth2Client
 
-        params = {
-            "client_id": settings.GOOGLE_CLIENT_ID,
-            "redirect_uri": settings.GOOGLE_REDIRECT_URI,
-            "scope": "openid email profile",
-            "response_type": "code",
-            "access_type": "offline",
-        }
-        client = OAuth2Client(client_id=settings.GOOGLE_CLIENT_ID)
-        uri, _ = client.create_authorization_url(
-            "https://accounts.google.com/o/oauth2/v2/auth",
-            **params,
+        client = OAuth2Client(
+            client_id=settings.GOOGLE_CLIENT_ID,
+            client_secret=settings.GOOGLE_CLIENT_SECRET,
         )
-        return uri
+        # Authlib generates state and stores it internally for this request
+        uri, state = client.create_authorization_url(
+            url="https://accounts.google.com/o/oauth2/v2/auth",
+            redirect_uri=settings.GOOGLE_REDIRECT_URI,
+            scope="openid email profile",
+            access_type="offline",
+        )
+        return uri, state
 
-    async def google_callback(self, code: str) -> tuple[User, str]:
+    async def google_callback(self, code: str, state_from_client: str, state_expected: str) -> tuple[User, str]:
+        logger.info(f"Google OAuth callback: checking state (provided={bool(state_from_client)}, expected={bool(state_expected)})")
+        
+        if not state_expected or not state_from_client:
+            logger.error("Google OAuth: Missing state parameters")
+            raise UnauthorizedError("Invalid OAuth state")
+            
+        if not hmac_compare(state_from_client, state_expected):
+            logger.error("Google OAuth: State mismatch")
+            raise UnauthorizedError("Invalid OAuth state")
+
+        logger.info("Google OAuth: State validated successfully")
+        import httpx
         from httpx import AsyncClient
 
-        async with AsyncClient() as client:
-            token_response = await client.post(
-                "https://oauth2.googleapis.com/token",
-                data={
-                    "code": code,
-                    "client_id": settings.GOOGLE_CLIENT_ID,
-                    "client_secret": settings.GOOGLE_CLIENT_SECRET,
-                    "redirect_uri": settings.GOOGLE_REDIRECT_URI,
-                    "grant_type": "authorization_code",
-                },
-            )
-            token_data = token_response.json()
-            if "error" in token_data:
-                raise UnauthorizedError("Google OAuth failed")
+        try:
+            logger.info("Google OAuth: Exchanging code for token...")
+            async with AsyncClient() as client:
+                token_response = await client.post(
+                    "https://oauth2.googleapis.com/token",
+                    data={
+                        "code": code,
+                        "client_id": settings.GOOGLE_CLIENT_ID,
+                        "client_secret": settings.GOOGLE_CLIENT_SECRET,
+                        "redirect_uri": settings.GOOGLE_REDIRECT_URI,
+                        "grant_type": "authorization_code",
+                    },
+                    timeout=10.0,
+                )
+                
+                # Log HTTP status for debugging
+                logger.info(f"Google OAuth: Token exchange HTTP status: {token_response.status_code}")
+                
+                token_response.raise_for_status()
+                token_data = token_response.json()
+                
+                if "error" in token_data:
+                    logger.error(f"Google OAuth token error: {token_data.get('error')}")
+                    raise UnauthorizedError("Google OAuth failed: " + token_data.get("error_description", "Unknown error"))
 
-            access_token_google = token_data.get("access_token")
-            userinfo_response = await client.get(
-                "https://www.googleapis.com/oauth2/v2/userinfo",
-                headers={"Authorization": f"Bearer {access_token_google}"},
-            )
-            userinfo = userinfo_response.json()
+                access_token_google = token_data.get("access_token")
+                if not access_token_google:
+                    logger.error("Google OAuth: Missing access token in response")
+                    raise UnauthorizedError("Google OAuth failed: Missing access token")
 
-        google_id = str(userinfo["id"])
-        email = userinfo["email"]
+                logger.info("Google OAuth: Fetching userinfo...")
+                userinfo_response = await client.get(
+                    "https://www.googleapis.com/oauth2/v2/userinfo",
+                    headers={"Authorization": f"Bearer {access_token_google}"},
+                    timeout=10.0,
+                )
+                
+                logger.info(f"Google OAuth: Userinfo HTTP status: {userinfo_response.status_code}")
+                
+                userinfo_response.raise_for_status()
+                userinfo = userinfo_response.json()
+                logger.info(f"Google OAuth: Got userinfo for {userinfo.get('email')}")
+
+        except httpx.RequestError as e:
+            logger.error(f"Google OAuth network error: {type(e).__name__}: {str(e)}")
+            raise UnauthorizedError(f"Network error during Google OAuth: {str(e)}")
+        except httpx.HTTPStatusError as e:
+            logger.error(f"Google OAuth HTTP error: {e.response.status_code} - {e.response.text[:200]}")
+            raise UnauthorizedError(f"Google OAuth provider returned error status: {e.response.status_code}")
+        except ValueError as e:
+            logger.error(f"Google OAuth: Invalid JSON response: {str(e)}")
+            raise UnauthorizedError("Invalid JSON response from Google OAuth provider")
+
+        google_id = str(userinfo.get("id"))
+        if not google_id or google_id == "None":
+            raise UnauthorizedError("Google OAuth failed: Missing user ID")
+            
+        email = userinfo.get("email")
+        if not email:
+            raise UnauthorizedError("Google OAuth failed: Missing email")
+            
         name = userinfo.get("name", "")
         picture = userinfo.get("picture", "")
 
@@ -119,6 +181,7 @@ class AuthService:
         existing_account = result.scalar_one_or_none()
 
         if existing_account:
+            logger.info("Google OAuth: Existing account found")
             user_result = await self.db.execute(
                 select(User).where(User.id == existing_account.userId)
             )
@@ -130,6 +193,7 @@ class AuthService:
             existing_user = existing_user_result.scalar_one_or_none()
 
             if existing_user:
+                logger.info("Google OAuth: Linking to existing user by email")
                 account = Account(
                     userId=existing_user.id,
                     type="oauth",
@@ -139,6 +203,7 @@ class AuthService:
                 self.db.add(account)
                 user = existing_user
             else:
+                logger.info("Google OAuth: Creating new user")
                 user = User(
                     name=name,
                     email=email,
@@ -156,15 +221,28 @@ class AuthService:
                 )
                 self.db.add(account)
 
+        if picture:
+            user.image = picture
+        if name and not user.name:
+            user.name = name
+
         await self.db.flush()
-        token = create_access_token(user.id)
+        token = create_access_token(
+            user.id,
+            name=user.name,
+            email=user.email,
+            image=user.image,
+        )
+        logger.info("Google OAuth: Success - JWT created")
         return user, token
 
     async def forgot_password(self, email: str) -> str:
         result = await self.db.execute(select(User).where(User.email == email))
         user = result.scalar_one_or_none()
         if not user:
-            raise NotFoundError("No account with this email")
+            # Do not reveal whether the account exists.
+            # Return a generic success message without creating any OTP.
+            return ""
 
         otp = "".join(secrets.choice("0123456789") for _ in range(6))
         expires = datetime.now(timezone.utc) + timedelta(minutes=15)

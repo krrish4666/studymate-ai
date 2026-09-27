@@ -1,12 +1,12 @@
 import uuid
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime, timezone
 
 import pytest
 from sqlalchemy import select
 
 from app.services.auth_service import AuthService
-from app.core.exceptions import ConflictError, UnauthorizedError, NotFoundError, BadRequestError
+from app.core.exceptions import ConflictError, UnauthorizedError, BadRequestError
 from app.models.user import User
 
 
@@ -74,11 +74,13 @@ class TestLogin:
 
 
 class TestOtpFlow:
-    async def test_forgot_password_nonexistent(self, auth_service: AuthService, mock_db: AsyncMock):
+    async def test_forgot_password_nonexistent_returns_empty(self, auth_service: AuthService, mock_db: AsyncMock):
         mock_db.execute.return_value.scalar_one_or_none.return_value = None
 
-        with pytest.raises(NotFoundError, match="No account with this email"):
-            await auth_service.forgot_password("nobody@example.com")
+        otp = await auth_service.forgot_password("nobody@example.com")
+
+        assert otp == ""
+        assert not mock_db.add.called
 
     async def test_forgot_password_generates_otp(self, auth_service: AuthService, mock_db: AsyncMock):
         user = User(id=uuid.uuid4(), email="test@example.com")
@@ -145,3 +147,27 @@ class TestOtpFlow:
 
         with pytest.raises(BadRequestError, match="Reset token expired"):
             await auth_service.reset_password(reset_token, "newPass123")
+
+
+class TestGoogleOAuth:
+    async def test_google_callback_missing_state(self, auth_service: AuthService, mock_db: AsyncMock):
+        with pytest.raises(UnauthorizedError, match="Invalid OAuth state"):
+            await auth_service.google_callback("some-code", "", "expected-state")
+
+    async def test_google_callback_wrong_state(self, auth_service: AuthService, mock_db: AsyncMock):
+        with pytest.raises(UnauthorizedError, match="Invalid OAuth state"):
+            await auth_service.google_callback("some-code", "attacker-state", "expected-state")
+
+    async def test_google_login_url_returns_state(self):
+        from unittest.mock import patch
+        service = AuthService(None)
+        with patch("authlib.integrations.httpx_client.OAuth2Client") as mock_cls:
+            client = MagicMock()
+            client.create_authorization_url.return_value = (
+                "https://accounts.google.com/authorize?xyz",
+                "state-token-123",
+            )
+            mock_cls.return_value = client
+            uri, state = await service.google_login_url()
+            assert uri.startswith("https://accounts.google.com")
+            assert state == "state-token-123"

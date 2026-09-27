@@ -1,15 +1,137 @@
+import asyncio
+import functools
 import json
+import logging
+import re
+from collections.abc import Awaitable, Callable
+from typing import Any
 
+import google.api_core.exceptions
+from pydantic import BaseModel, field_validator
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import settings
+from app.core.exceptions import BadRequestError
 from app.core.security import decrypt_data
 from app.models.api_key import ApiKey
 from app.models.document_cache import DocumentCache
-from app.models.file_record import FileRecord
 from app.services.file_parser import file_parser
 from app.services.storage_service import storage_service
+
+logger = logging.getLogger(__name__)
+
+# Pydantic Schemas for validating (not constraining) AI output
+class FlashcardModel(BaseModel):
+    id: str
+    question: str
+    answer: str
+
+    @field_validator("question", "answer")
+    @classmethod
+    def non_empty(cls, v: str) -> str:
+        v = (v or "").strip()
+        if not v:
+            raise ValueError("flashcard content must be non-empty")
+        return v
+
+
+class FlashcardList(BaseModel):
+    flashcards: list[FlashcardModel]
+
+
+class QuizQuestionModel(BaseModel):
+    id: str = ""
+    type: str = "mcq"
+    question: str
+    options: list[str]
+    correctAnswer: int
+    explanation: str = ""
+
+    @field_validator("question")
+    @classmethod
+    def question_non_empty(cls, v: str) -> str:
+        v = (v or "").strip()
+        if not v:
+            raise ValueError("quiz question must be non-empty")
+        return v
+
+    @field_validator("options")
+    @classmethod
+    def four_options(cls, v: list[str]) -> list[str]:
+        if len(v) != 4 or any(not (o or "").strip() for o in v):
+            raise ValueError("quiz options must be exactly 4 non-empty strings")
+        return v
+
+
+class QuizList(BaseModel):
+    questions: list[QuizQuestionModel]
+
+
+class MindMapNodeModel(BaseModel):
+    id: str = ""
+    label: str
+    children: list["MindMapNodeModel"] = []
+
+    @field_validator("label")
+    @classmethod
+    def label_non_empty(cls, v: str) -> str:
+        v = (v or "").strip()
+        if not v:
+            raise ValueError("mind map nodes must have a non-empty label")
+        return v
+
+
+class MindMapSchema(BaseModel):
+    mindmap: MindMapNodeModel
+
+
+def parse_json_response(raw: str) -> Any:
+    """Parse a Gemini text response into JSON, tolerating markdown fences."""
+    if not raw or not raw.strip():
+        raise BadRequestError("AI returned an empty response")
+    text = raw.strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+
+    # Strip ```json ... ``` fences if the model wrapped the output.
+    fence = re.match(r"^```(?:json)?\s*(.*?)\s*```$", text, re.DOTALL)
+    if fence:
+        try:
+            return json.loads(fence.group(1))
+        except json.JSONDecodeError:
+            pass
+
+    raise BadRequestError("AI returned malformed JSON")
+
+
+def with_retry[**P, R](func: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
+    """Bounded exponential backoff retry for Gemini API transient errors."""
+
+    @functools.wraps(func)
+    async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                return await func(*args, **kwargs)
+            except (
+                google.api_core.exceptions.ResourceExhausted,
+                google.api_core.exceptions.ServiceUnavailable,
+                google.api_core.exceptions.DeadlineExceeded,
+            ) as e:
+                if attempt == max_retries - 1:
+                    logger.error(f"Gemini API failed after {max_retries} attempts: {str(e)}")
+                    raise BadRequestError("AI generation temporarily unavailable. Please try again later.") from e
+                await asyncio.sleep(2 ** attempt)
+            except google.api_core.exceptions.InvalidArgument as e:
+                logger.error(f"Gemini API invalid argument: {str(e)}")
+                raise BadRequestError("Invalid document content or parameters sent to AI.") from e
+            except Exception as e:
+                logger.error(f"Unexpected Gemini API error: {str(e)}")
+                raise BadRequestError("An unexpected error occurred during AI generation.") from e
+
+    return wrapper
 
 
 NOTES_SYSTEM_PROMPT = """You are an expert university professor creating comprehensive study notes. Your notes must be detailed, well-structured, and educationally rich.
@@ -141,15 +263,18 @@ Return ONLY valid JSON:
 
 
 class GeminiService:
-    DEFAULT_MODEL = "models/gemini-3.1-flash-lite"
+    DEFAULT_MODEL = "models/gemini-2.5-flash"
 
     async def get_api_key(self, db: AsyncSession, user_id) -> str:
         result = await db.execute(
-            select(ApiKey).where(
+            select(ApiKey)
+            .where(
                 ApiKey.userId == user_id,
                 ApiKey.provider == "gemini",
                 ApiKey.isActive == True,
             )
+            .order_by(ApiKey.createdAt.desc())
+            .limit(1)
         )
         api_key = result.scalar_one_or_none()
         if api_key:
@@ -180,7 +305,7 @@ class GeminiService:
         return text
 
     async def stream_notes(
-        self, db: AsyncSession, user_id, file_record, mode: str, api_key: str
+        self, db: AsyncSession, user_id, file_record, mode: str, api_key: str, request=None
     ):
         try:
             text_content = await self._extract_file_text(db, file_record)
@@ -201,22 +326,24 @@ class GeminiService:
                 f"Material:\n{text_content[:50000]}"
             )
 
-            response = model.generate_content(prompt, stream=True)
+            response = await model.generate_content_async(prompt, stream=True)
             full_text = ""
-            for chunk in response:
+            async for chunk in response:
+                if request and await request.is_disconnected():
+                    logger.info("Client disconnected during stream_notes, aborting.")
+                    return
                 if chunk.text:
                     full_text += chunk.text
-                    # JSON-encode each chunk so newlines survive SSE framing
-                    # and the client can reconstruct the text exactly.
                     yield f"data: {json.dumps(chunk.text)}\n\n"
 
             yield "data: [DONE]\n\n"
             await self._save_output(db, user_id, file_record.id, None, full_text)
         except Exception as e:
-            yield f"data: [ERROR] {str(e)}\n\n"
+            logger.error(f"Error in stream_notes: {str(e)}")
+            yield f"data: [ERROR] AI generation failed. Please try again.\n\n"
 
     async def stream_revision(
-        self, db: AsyncSession, user_id, file_record, api_key: str
+        self, db: AsyncSession, user_id, file_record, api_key: str, request=None
     ):
         try:
             text_content = await self._extract_file_text(db, file_record)
@@ -228,13 +355,14 @@ class GeminiService:
                 f"Material:\n{text_content[:50000]}"
             )
 
-            response = model.generate_content(prompt, stream=True)
+            response = await model.generate_content_async(prompt, stream=True)
             full_text = ""
-            for chunk in response:
+            async for chunk in response:
+                if request and await request.is_disconnected():
+                    logger.info("Client disconnected during stream_revision, aborting.")
+                    return
                 if chunk.text:
                     full_text += chunk.text
-                    # JSON-encode each chunk so newlines survive SSE framing
-                    # and the client can reconstruct the text exactly.
                     yield f"data: {json.dumps(chunk.text)}\n\n"
 
             yield "data: [DONE]\n\n"
@@ -242,7 +370,8 @@ class GeminiService:
                 db, user_id, file_record.id, None, full_text, feature="revision"
             )
         except Exception as e:
-            yield f"data: [ERROR] {str(e)}\n\n"
+            logger.error(f"Error in stream_revision: {str(e)}")
+            yield f"data: [ERROR] AI generation failed. Please try again.\n\n"
 
     async def _save_output(self, db, user_id, file_record_id, output_json, output_text, feature="notes"):
         from app.models.session_output import SessionOutput
@@ -256,6 +385,16 @@ class GeminiService:
         )
         db.add(session_output)
         await db.flush()
+
+    @with_retry
+    async def _call_gemini_json(self, model, prompt: str) -> Any:
+        """Call Gemini for an application/json response and parse the JSON."""
+        import google.generativeai as genai
+        config = genai.GenerationConfig(
+            response_mime_type="application/json",
+        )
+        response = await model.generate_content_async(prompt, generation_config=config)
+        return parse_json_response(response.text)
 
     async def generate_quiz(
         self, db: AsyncSession, user_id, file_record, api_key: str,
@@ -272,20 +411,26 @@ class GeminiService:
             f"Material:\n{text_content[:50000]}"
         )
 
-        response = model.generate_content(prompt)
-        try:
-            result = json.loads(response.text.strip())
-            questions = result.get("questions", [])
-        except (json.JSONDecodeError, AttributeError):
-            questions = []
+        result = await self._call_gemini_json(model, prompt)
+        if not isinstance(result, dict):
+            raise BadRequestError("AI returned an unexpected response shape")
 
-        # Validate: every question must have exactly 4 options
-        valid = []
-        for q in questions:
-            opts = q.get("options", [])
-            if len(opts) == 4 and all(isinstance(o, str) and o.strip() for o in opts):
-                valid.append(q)
-        questions = valid
+        raw_questions = result.get("questions", [])
+        if not isinstance(raw_questions, list):
+            raise BadRequestError("AI returned an unexpected response shape")
+
+        questions = []
+        for q in raw_questions:
+            try:
+                validated = QuizQuestionModel.model_validate(q)
+            except Exception:
+                continue
+            # Reject out-of-range correctAnswer references.
+            if 0 <= validated.correctAnswer < len(validated.options):
+                questions.append(validated.model_dump())
+
+        if not questions:
+            raise BadRequestError("AI generation produced no valid quiz questions")
 
         await self._save_output(
             db, user_id, file_record.id,
@@ -307,12 +452,20 @@ class GeminiService:
             f"Material:\n{text_content[:50000]}"
         )
 
-        response = model.generate_content(prompt)
+        result = await self._call_gemini_json(model, prompt)
+        if not isinstance(result, dict):
+            raise BadRequestError("AI returned an unexpected response shape")
+
+        mindmap = result.get("mindmap", {})
+        if not isinstance(mindmap, dict) or not mindmap.get("label"):
+            raise BadRequestError("AI generation produced no valid mind map")
+
         try:
-            result = json.loads(response.text.strip())
-            mindmap = result.get("mindmap", {})
-        except (json.JSONDecodeError, AttributeError):
-            mindmap = {"id": "root", "label": "Mind Map", "children": []}
+            validated = MindMapSchema.model_validate({"mindmap": mindmap})
+        except Exception:
+            raise BadRequestError("AI generation produced an invalid mind map")
+
+        mindmap = validated.model_dump()["mindmap"]
 
         await self._save_output(
             db, user_id, file_record.id,
@@ -334,12 +487,25 @@ class GeminiService:
             f"Material:\n{text_content[:50000]}"
         )
 
-        response = model.generate_content(prompt)
-        try:
-            result = json.loads(response.text.strip())
-            flashcards = result.get("flashcards", [])
-        except (json.JSONDecodeError, AttributeError):
-            flashcards = []
+        result = await self._call_gemini_json(model, prompt)
+        if not isinstance(result, dict):
+            raise BadRequestError("AI returned an unexpected response shape")
+
+        raw_flashcards = result.get("flashcards", [])
+        if not isinstance(raw_flashcards, list):
+            raise BadRequestError("AI returned an unexpected response shape")
+
+        flashcards = []
+        for fc in raw_flashcards:
+            try:
+                cards = FlashcardList.model_validate({"flashcards": [fc]}).model_dump()
+                if cards and cards["flashcards"]:
+                    flashcards.extend(cards["flashcards"])
+            except Exception:
+                continue
+
+        if not flashcards:
+            raise BadRequestError("AI generation produced no valid flashcards")
 
         await self._save_output(
             db, user_id, file_record.id,

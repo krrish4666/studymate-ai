@@ -17,6 +17,7 @@ from app.models import (  # noqa: F401
     ApiKey,
     FileRecord,
     SessionOutput,
+    DocumentCache,
 )
 
 config = context.config

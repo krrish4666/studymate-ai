@@ -1,3 +1,4 @@
+import os
 import uuid
 
 import pytest
@@ -10,6 +11,7 @@ from app.core.security import (
     decode_access_token,
     encrypt_data,
     decrypt_data,
+    hmac_compare,
 )
 
 
@@ -51,6 +53,21 @@ class TestJWT:
         assert payload is not None
         assert payload["sub"] == str(uid)
 
+    def test_create_access_token_includes_profile_claims(self):
+        uid = uuid.uuid4()
+        token = create_access_token(
+            uid,
+            name="Google User",
+            email="user@example.com",
+            image="https://example.com/avatar.jpg",
+        )
+        payload = decode_access_token(token)
+
+        assert payload is not None
+        assert payload["name"] == "Google User"
+        assert payload["email"] == "user@example.com"
+        assert payload["image"] == "https://example.com/avatar.jpg"
+
     def test_decode_invalid_token(self):
         result = decode_access_token("invalid.token.here")
         assert result is None
@@ -86,9 +103,29 @@ class TestEncryption:
         e2 = encrypt_data(data)
         assert e1 != e2
 
-    def test_decrypt_tampered_data_raises(self):
+    def test_decrypt_tampered_data_fails_safe(self) -> None:
+        import binascii
         data = "valid-data"
         encrypted = encrypt_data(data)
-        tampered = "ff" + encrypted[2:]
-        with pytest.raises(Exception):
-            decrypt_data(tampered)
+        raw = bytearray(binascii.unhexlify(encrypted))
+        # Flip a bit in the ciphertext region (past the 12-byte nonce).
+        raw[-1] ^= 0x01
+        assert decrypt_data(binascii.hexlify(bytes(raw)).decode()) == ""
+
+    def test_decrypt_wrong_key_returns_empty(self) -> None:
+        from unittest.mock import patch
+        original = "sk-test-api-key-12345"
+        encrypted = encrypt_data(original)
+
+        # Decrypt using a different valid 32-byte key than the one used to encrypt.
+        with patch("app.core.security._get_encryption_key", return_value=os.urandom(32)):
+            assert decrypt_data(encrypted) == ""
+
+    def test_decrypt_malformed_ciphertext_returns_empty(self) -> None:
+        assert decrypt_data("not-a-hex-string") == ""
+        assert decrypt_data("") == ""
+
+    def test_hmac_compare(self) -> None:
+        assert hmac_compare("abc", "abc") is True
+        assert hmac_compare("abc", "abd") is False
+        assert hmac_compare("abc", "abcdef") is False

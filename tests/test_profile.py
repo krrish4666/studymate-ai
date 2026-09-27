@@ -73,13 +73,17 @@ class TestProfileAPI:
         assert data[0]["provider"] == "gemini"
 
     async def test_create_api_key(self, profile_client: AsyncClient, mock_db: MagicMock):
-        with patch("app.api.v1.profile.ApiKey") as mock_api_key_cls:
+        with patch("app.api.v1.profile.ApiKey") as mock_api_key_cls, \
+             patch("app.api.v1.profile.update") as mock_update:
+            mock_update.return_value.where.return_value.values.return_value = MagicMock()
             mock_key = MagicMock()
             mock_key.id = uuid.uuid4()
             mock_key.provider = "gemini"
             mock_key.label = "My Gemini Key"
             mock_key.isActive = True
             mock_key.createdAt = datetime.now(timezone.utc)
+            mock_key.encryptedKey = "encrypted"
+            mock_key.userId = uuid.uuid4()
             mock_api_key_cls.return_value = mock_key
 
             response = await profile_client.post(
@@ -90,6 +94,28 @@ class TestProfileAPI:
         data = response.json()
         assert data["provider"] == "gemini"
         assert mock_db.add.called
+        assert mock_db.execute.called  # deactivate-existing-active-keys UPDATE
+
+    async def test_create_api_key_deactivates_previous(self, profile_client: AsyncClient, mock_db: MagicMock):
+        with patch("app.api.v1.profile.ApiKey") as mock_api_key_cls, \
+             patch("app.api.v1.profile.update") as mock_update:
+            mock_update.return_value.where.return_value.values.return_value = MagicMock()
+            mock_key = MagicMock()
+            mock_key.id = uuid.uuid4()
+            mock_key.provider = "gemini"
+            mock_key.label = "Key 2"
+            mock_key.isActive = True
+            mock_key.createdAt = datetime.now(timezone.utc)
+            mock_key.encryptedKey = "encrypted"
+            mock_key.userId = uuid.uuid4()
+            mock_api_key_cls.return_value = mock_key
+
+            response = await profile_client.post(
+                "/api/v1/profile/api-keys",
+                json={"provider": "gemini", "key": "new-key", "label": "Key 2"},
+            )
+        assert response.status_code == 201
+        assert mock_db.execute.called  # UPDATE executed before INSERT
 
     async def test_delete_api_key_not_found(self, profile_client: AsyncClient, mock_db: MagicMock):
         mock_db.execute.return_value.scalar_one_or_none.return_value = None

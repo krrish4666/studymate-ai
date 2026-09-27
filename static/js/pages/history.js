@@ -75,7 +75,6 @@ async function showDetail(id) {
             </p>
           </div>
           <div style="display:flex;gap:8px;">
-            <a href="/api/v1/history/${fr.id}/file" class="btn btn-secondary btn-sm" target="_blank">Download File</a>
             <button class="btn btn-primary btn-sm" id="download-pdf-detail">Download PDF</button>
             <button class="btn btn-danger btn-sm" id="delete-session">Delete</button>
           </div>
@@ -84,9 +83,7 @@ async function showDetail(id) {
           ${out ? (
             out.outputText
               ? `<div class="streaming-content"><pre style="white-space:pre-wrap;">${out.outputText}</pre></div>`
-              : out.outputJson
-                ? `<pre style="white-space:pre-wrap;font-size:0.85rem;">${JSON.stringify(out.outputJson, null, 2)}</pre>`
-                : '<p style="color:var(--color-muted-text);">No output content</p>'
+              : '<p style="color:var(--color-muted-text);">Content preview is only available for notes and revision.</p>'
           ) : '<p style="color:var(--color-muted-text);">No output generated</p>'}
         </div>
       </div>

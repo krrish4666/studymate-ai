@@ -1,7 +1,7 @@
 import uuid
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import select, func
+from sqlalchemy import select, func, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -72,6 +72,17 @@ async def create_api_key(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    if body.provider == "gemini":
+        await db.execute(
+            update(ApiKey)
+            .where(
+                ApiKey.userId == current_user.id,
+                ApiKey.provider == "gemini",
+                ApiKey.isActive == True,
+            )
+            .values(isActive=False)
+        )
+
     encrypted = encrypt_data(body.key)
     api_key = ApiKey(
         userId=current_user.id,

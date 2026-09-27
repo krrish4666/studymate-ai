@@ -40,7 +40,7 @@ def mock_db() -> MagicMock:
     db.add = MagicMock()
     db.delete = AsyncMock()
     db.flush = AsyncMock()
-    db.refresh = MagicMock()
+    db.refresh = AsyncMock()
     db.commit = MagicMock()
     db.rollback = MagicMock()
     db.close = MagicMock()

@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
     GOOGLE_REDIRECT_URI: str = ""
+    GOOGLE_OAUTH_STATE_COOKIE: str = "studymate_oauth_state"
 
     S3_ENDPOINT: str = ""
     S3_ACCESS_KEY: str = ""

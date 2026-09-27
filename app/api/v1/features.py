@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -40,6 +40,7 @@ async def _resolve_api_key(db: AsyncSession, user_id) -> str:
 
 @router.post("/notes")
 async def generate_notes(
+    request: Request,
     body: NotesRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -49,7 +50,7 @@ async def generate_notes(
 
     return StreamingResponse(
         gemini_service.stream_notes(
-            db, current_user.id, file_record, body.mode, api_key
+            db, current_user.id, file_record, body.mode, api_key, request=request
         ),
         media_type="text/event-stream",
         headers={
@@ -115,6 +116,7 @@ async def generate_mindmap(
 
 @router.post("/revision")
 async def generate_revision(
+    request: Request,
     body: NotesRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -124,7 +126,7 @@ async def generate_revision(
 
     return StreamingResponse(
         gemini_service.stream_revision(
-            db, current_user.id, file_record, api_key
+            db, current_user.id, file_record, api_key, request=request
         ),
         media_type="text/event-stream",
         headers={

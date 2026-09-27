@@ -98,7 +98,8 @@ export async function initQuiz() {
         output.hidden = false;
         output.style.display = 'block';
       }
-      document.getElementById('quiz-question-count').textContent = `${questions.length} questions`;
+      const countEl = document.getElementById('quiz-question-count');
+      if (countEl) countEl.textContent = `${questions.length} questions`;
       hide(downloadBtn);
       if (fileStatus) {
         fileStatus.textContent = 'Quiz generated successfully';
@@ -163,8 +164,8 @@ export async function initQuiz() {
       });
     });
 
-    document.getElementById('submit-quiz').onclick = submitQuiz;
-    document.getElementById('download-pdf').onclick = downloadPdf;
+    document.getElementById('submit-quiz')?.addEventListener('click', submitQuiz);
+    document.getElementById('download-pdf')?.addEventListener('click', downloadPdf);
   }
 
   function submitQuiz() {
@@ -196,9 +197,10 @@ export async function initQuiz() {
       }
     });
 
-    document.getElementById('submit-quiz').disabled = true;
+    const submitBtn = document.getElementById('submit-quiz');
+    if (submitBtn) submitBtn.disabled = true;
     const resultsDiv = document.getElementById('quiz-results');
-    resultsDiv.hidden = false;
+    if (resultsDiv) resultsDiv.hidden = false;
 
     const pct = Math.round((correct / questions.length) * 100);
     let message = 'Keep practicing!';
@@ -246,7 +248,8 @@ async function loadHistoryQuiz(fileId) {
     if (questions.length > 0) {
       show(output);
       StudyMateUpload.setFromHistory(fileId);
-      document.getElementById('quiz-question-count').textContent = `${questions.length} questions`;
+      const countEl = document.getElementById('quiz-question-count');
+      if (countEl) countEl.textContent = `${questions.length} questions`;
       const container = document.getElementById('quiz-questions');
       const labels = ['A', 'B', 'C', 'D'];
       questions.forEach((q, qi) => {
@@ -266,16 +269,20 @@ async function loadHistoryQuiz(fileId) {
         `;
         container.appendChild(div);
       });
-      document.getElementById('submit-quiz').disabled = true;
-      document.getElementById('submit-quiz').textContent = 'Viewing History';
+      const submitBtn = document.getElementById('submit-quiz');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Viewing History';
+      }
       const resultsDiv = document.getElementById('quiz-results');
-      resultsDiv.hidden = false;
-      const correct = questions.filter((q, i) => q.correctAnswer === 0).length;
-      resultsDiv.innerHTML = `
-        <div class="quiz-result-card">
-          <div class="quiz-question-text" style="margin-bottom:0;">Historical session — answers shown</div>
-        </div>
-      `;
+      if (resultsDiv) {
+        resultsDiv.hidden = false;
+        resultsDiv.innerHTML = `
+          <div class="quiz-result-card">
+            <div class="quiz-question-text" style="margin-bottom:0;">Historical session — answers shown</div>
+          </div>
+        `;
+      }
     }
   } catch {}
 }

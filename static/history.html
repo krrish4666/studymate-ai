@@ -47,10 +47,10 @@
   </main>
 
   <script type="module">
-    import { requireAuth } from '/static/js/auth.js';
-    import { initHistory } from '/static/js/pages/history.js';
+    import { requireAuth } from '/static/js/auth.js?v=3';
+    import { initHistory } from '/static/js/pages/history.js?v=3';
     if (requireAuth()) initHistory();
   </script>
-  <script type="module" src="/static/js/main.js"></script>
+  <script type="module" src="/static/js/main.js?v=4"></script>
 </body>
 </html>

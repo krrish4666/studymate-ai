@@ -33,8 +33,24 @@ async def upload_file(
 
     kind = filetype.guess(file_data[:2048])
     mime_type = kind.mime if kind else "application/octet-stream"
+    
+    # Fallback for plain text files which don't have magic bytes
+    ext = Path(file.filename).suffix.lower()
+    if not kind and ext == ".txt":
+        try:
+            file_data.decode('utf-8')
+            mime_type = "text/plain"
+        except UnicodeDecodeError:
+            pass
+
     if mime_type not in settings.ALLOWED_FILE_TYPES:
         raise UnsupportedMediaError(f"Unsupported file type: {mime_type}")
+
+    # Try parsing BEFORE creating DB records so we don't save broken files
+    try:
+        extracted_text = file_parser.extract_text(file_data, file.filename)
+    except Exception as e:
+        raise BadRequestError(f"Failed to process or parse document: {str(e)}")
 
     file_url = storage_service.save(file_data, file.filename)
 
@@ -42,25 +58,21 @@ async def upload_file(
         userId=current_user.id,
         originalName=file.filename,
         fileUrl=file_url,
-        fileType=Path(file.filename).suffix.lower().lstrip("."),
+        fileType=ext.lstrip("."),
         fileSize=len(file_data),
         feature=feature,
         status="done",
     )
     db.add(file_record)
     await db.flush()
-    await db.refresh(file_record)
 
-    try:
-        extracted_text = file_parser.extract_text(file_data, file.filename)
-        cache = DocumentCache(
-            fileRecordId=file_record.id,
-            extractedText=extracted_text,
-        )
-        db.add(cache)
-        await db.flush()
-    except Exception:
-        pass
+    cache = DocumentCache(
+        fileRecordId=file_record.id,
+        extractedText=extracted_text,
+    )
+    db.add(cache)
+    await db.flush()
+    await db.refresh(file_record)
 
     return FileUploadResponse(
         fileRecordId=str(file_record.id),

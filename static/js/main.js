@@ -21,9 +21,21 @@ function initAuthUI() {
   if (isAuthenticated()) {
     const user = getUser();
     authContainer.innerHTML = `
-      <a href="/profile" class="btn btn-ghost btn-sm">${user?.name || 'Profile'}</a>
+      <a href="/profile" class="profile-link" aria-label="Open profile" title="${user?.name || 'Profile'}">
+        <span class="profile-avatar-fallback">${(user?.name || 'P').charAt(0).toUpperCase()}</span>
+      </a>
       <button id="logout-btn" class="btn btn-ghost btn-sm">Logout</button>
     `;
+    const avatar = authContainer.querySelector('.profile-avatar-fallback');
+    if (user?.image && avatar) {
+      const image = document.createElement('img');
+      image.className = 'profile-avatar';
+      image.src = user.image;
+      image.alt = `${user.name || 'User'} profile`;
+      image.referrerPolicy = 'no-referrer';
+      image.onerror = () => image.replaceWith(avatar);
+      avatar.replaceWith(image);
+    }
     document.getElementById('logout-btn')?.addEventListener('click', logout);
   } else {
     authContainer.innerHTML = `

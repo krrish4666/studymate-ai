@@ -27,6 +27,42 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+import uuid
+import time
+import logging
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+logger = logging.getLogger("main")
+
+@app.middleware("http")
+async def add_request_id_and_log(request: Request, call_next):
+    request_id = str(uuid.uuid4())
+    start_time = time.time()
+    
+    # Add request_id to request state so other parts of the app could use it
+    request.state.request_id = request_id
+    
+    logger.info(f"Req [{request_id}] started {request.method} {request.url.path}")
+    
+    response = await call_next(request)
+    
+    duration = time.time() - start_time
+    response.headers["X-Request-ID"] = request_id
+    logger.info(f"Req [{request_id}] completed {response.status_code} in {duration:.3f}s")
+    
+    return response
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    request_id = getattr(request.state, "request_id", "unknown")
+    logger.error(f"Req [{request_id}] Unhandled Exception: {str(exc)}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "An unexpected server error occurred."},
+    )
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
