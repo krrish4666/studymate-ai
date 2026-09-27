@@ -14,132 +14,97 @@
   </p>
 </div>
 
-🌟 Executive Summary
+---
 
-StudyMate AI HUB is an enterprise-grade academic productivity platform built with FastAPI (Async) and Google Gemini AI. It addresses the friction of digesting complex academic textbooks, lecture slides (.pptx), research papers (.pdf), and handwritten notes (.docx / images) by instantly converting raw documents into interactive, multi-modal learning experiences.
+## 🌟 Executive Summary
 
-Designed with decoupled client-server architecture, real-time Server-Sent Events (SSE) streaming, AES-256-GCM encryption for user credentials, and serverless PostgreSQL (Neon) storage, StudyMate AI HUB represents modern, type-safe full-stack engineering best practices.
+**StudyMate AI HUB** is an enterprise-grade academic productivity platform built with **FastAPI (Async)** and **Google Gemini AI**. It addresses the friction of digesting complex academic textbooks, lecture slides (`.pptx`), research papers (`.pdf`), and handwritten notes (`.docx` / images) by instantly converting raw documents into **interactive, multi-modal learning experiences**.
 
-🏗️ System Architecture
+Designed with **decoupled client-server architecture**, real-time **Server-Sent Events (SSE)** streaming, **AES-256-GCM encryption** for user credentials, and serverless **PostgreSQL (Neon)** storage, StudyMate AI HUB represents modern, type-safe full-stack engineering best practices.
+
+---
+
+## 🏗️ System Architecture
 
 StudyMate AI HUB enforces strict separation of concerns between its static frontend presentation layer and asynchronous backend services:
 
+![StudyMate AI HUB System Architecture](Architecture_Diagram.png)
 
+---
 
+## ✨ Key Features & Capabilities
 
+### 📄 1. Multi-Modal Document Engine
 
-✨ Key Features & Capabilities
+* **Universal Ingestion**: Extracts structured text and metadata from **PDFs** (`PyMuPDF`), **Word Documents** (`python-docx`), **PowerPoint Slides** (`python-pptx`), and **High-Res Images** (`Pillow` OCR / Base64).
+* **Intelligent Caching & Deduplication**: SHA-256 file hashing prevents redundant LLM processing across user sessions.
 
-📄 1. Multi-Modal Document Engine
+### 📝 2. Academic Study Notes Generator (`SSE Streaming`)
 
-Universal Ingestion: Extracts structured text and metadata from PDFs (PyMuPDF), Word Documents (python-docx), PowerPoint Slides (python-pptx), and High-Res Images (Pillow OCR / Base64).
+* Produces university-grade, hierarchical study notes formatted with clear section headings, concept definitions, bulleted summaries, and key takeaways.
+* **Real-Time Streaming**: Uses **FastAPI `StreamingResponse` (SSE)** to stream chunks smoothly to the browser, accompanied by live step-by-step progress indicators (`Analyzing document...` ➔ `Extracting text...` ➔ `Generating notes...`).
 
-Intelligent Caching & Deduplication: SHA-256 file hashing prevents redundant LLM processing across user sessions.
+### 🎯 3. Interactive MCQ Quiz Engine
 
-📝 2. Academic Study Notes Generator (SSE Streaming)
+* Dynamically generates custom multiple-choice quizzes tailored by **difficulty** (`Easy`, `Medium`, `Hard`) and **question count**.
+* **Instant Grading & Explanations**: Features interactive client-side grading with detailed conceptual explanations (`💡`) for both correct and incorrect answers.
 
-Produces university-grade, hierarchical study notes formatted with clear section headings, concept definitions, bulleted summaries, and key takeaways.
+### 🧠 4. Dynamic Mind Map Visualization
 
-Real-Time Streaming: Uses FastAPI StreamingResponse (SSE) to stream chunks smoothly to the browser, accompanied by live step-by-step progress indicators (Analyzing document... ➔ Extracting text... ➔ Generating notes...).
+* Automatically extracts conceptual hierarchies (`root` ➔ `branches` ➔ `leaf nodes`) and renders them using **HTML5 Canvas**.
+* **Custom Hierarchical Layout**: Implements a custom tree-layout algorithm with radial color gradients (`rgba`), smooth click-and-drag panning, scroll-to-zoom, and touch-screen support.
 
-🎯 3. Interactive MCQ Quiz Engine
+### 🃏 5. Flashcard Deck & Revision Cheat Sheet Builders
 
-Dynamically generates custom multiple-choice quizzes tailored by difficulty (Easy, Medium, Hard) and question count.
+* **Flashcard Study Mode**: Creates flip-cards designed for active recall and spaced repetition.
+* **Exam Cheat Sheets**: Synthesizes massive documents into ultra-dense, bulleted review sheets tailored for high-speed pre-exam study.
 
-Instant Grading & Explanations: Features interactive client-side grading with detailed conceptual explanations (💡) for both correct and incorrect answers.
+### 🛡️ 6. Enterprise-Grade Security & Authentication
 
-🧠 4. Dynamic Mind Map Visualization
+* **Dual Authentication**: Supports both secure local JWT bearer authentication (`python-jose` + `passlib[bcrypt]`) and **Google OAuth 2.0** (`authlib`).
+* **Encrypted API Key Vault**: Users can bring their own Google Gemini API keys, which are securely encrypted at rest using **AES-256-GCM** (`cryptography`).
 
-Automatically extracts conceptual hierarchies (root ➔ branches ➔ leaf nodes) and renders them using HTML5 Canvas.
+### 📦 7. ReportLab PDF Export Service
 
-Custom Hierarchical Layout: Implements a custom tree-layout algorithm with radial color gradients (rgba), smooth click-and-drag panning, scroll-to-zoom, and touch-screen support.
+* Allows instant one-click export of generated notes, quiz results, and revision sheets into polished, professional PDF documents (`ReportLab` / `WeasyPrint`).
 
-🃏 5. Flashcard Deck & Revision Cheat Sheet Builders
+---
 
-Flashcard Study Mode: Creates flip-cards designed for active recall and spaced repetition.
+## 💻 Technology Stack
 
-Exam Cheat Sheets: Synthesizes massive documents into ultra-dense, bulleted review sheets tailored for high-speed pre-exam study.
+| Layer                   | Technologies & Tools                                                        | Key Responsibilities                                                        |
+| :---------------------- | :-------------------------------------------------------------------------- | :-------------------------------------------------------------------------- |
+| **Backend API**         | **FastAPI (`^0.115`)**, Python 3.12+, Uvicorn (`^0.34`)                     | High-performance asynchronous REST API & SSE streaming gateway              |
+| **Database & ORM**      | **PostgreSQL (Neon.tech)**, **SQLAlchemy 2.0 Async (`asyncpg`)**, Alembic   | Type-safe asynchronous data persistence and migration tracking              |
+| **AI / LLM Layer**      | **Google Gemini (`google-generativeai ^0.8`)**, Gemini 3.5 Flash            | Advanced natural language synthesis and structured JSON/Markdown extraction |
+| **Frontend UI**         | HTML5, **Tailwind CSS v4**, ES2024 Modules, Lucide Icons                    | Responsive, state-driven user interface with zero heavy bundle overhead     |
+| **Document Processing** | PyMuPDF (`fitz`), `python-docx`, `python-pptx`, `Pillow`, `python-magic`    | High-fidelity parsing across all major academic file formats                |
+| **PDF Generation**      | **ReportLab (`^4.3`)**, WeasyPrint                                          | Server-side programmatic PDF generation                                     |
+| **Testing & Quality**   | `pytest`, `pytest-asyncio`, `httpx`, **Playwright (`E2E`)**, `mypy`, `ruff` | Complete unit, integration, type, lint, and browser E2E coverage            |
 
-🛡️ 6. Enterprise-Grade Security & Authentication
+---
 
-Dual Authentication: Supports both secure local JWT bearer authentication (python-jose + passlib[bcrypt]) and Google OAuth 2.0 (authlib).
+## 🚀 Quickstart & Local Setup
 
-Encrypted API Key Vault: Users can bring their own Google Gemini API keys, which are securely encrypted at rest using AES-256-GCM (cryptography).
+### 1. Prerequisites
 
-📦 7. ReportLab PDF Export Service
+* **Python 3.12+** installed on your system.
+* **PostgreSQL database instance** (e.g., free serverless database at [Neon.tech](https://neon.tech/)).
+* **Google Gemini API Key** (obtainable from [Google AI Studio](https://aistudio.google.com/)).
 
-Allows instant one-click export of generated notes, quiz results, and revision sheets into polished, professional PDF documents (ReportLab / WeasyPrint).
+### 2. Repository Setup
 
-💻 Technology Stack
-
-Layer
-
-Technologies & Tools
-
-Key Responsibilities
-
-Backend API
-
-FastAPI (^0.115), Python 3.12+, Uvicorn (^0.34)
-
-High-performance asynchronous REST API & SSE streaming gateway
-
-Database & ORM
-
-PostgreSQL (Neon.tech), SQLAlchemy 2.0 Async (asyncpg), Alembic
-
-Type-safe asynchronous data persistence and migration tracking
-
-AI / LLM Layer
-
-Google Gemini (google-generativeai ^0.8), Gemini 3.5 Flash
-
-Advanced natural language synthesis and structured JSON/Markdown extraction
-
-Frontend UI
-
-HTML5, Tailwind CSS v4, ES2024 Modules, Lucide Icons
-
-Responsive, state-driven user interface with zero heavy bundle overhead
-
-Document Processing
-
-PyMuPDF (fitz), python-docx, python-pptx, Pillow, python-magic
-
-High-fidelity parsing across all major academic file formats
-
-PDF Generation
-
-ReportLab (^4.3), WeasyPrint
-
-Server-side programmatic PDF generation
-
-Testing & Quality
-
-pytest, pytest-asyncio, httpx, Playwright (E2E), mypy, ruff
-
-Complete unit, integration, type, lint, and browser E2E coverage
-
-🚀 Quickstart & Local Setup
-
-1. Prerequisites
-
-Python 3.12+ installed on your system.
-
-PostgreSQL database instance (e.g., free serverless database at Neon.tech).
-
-Google Gemini API Key (obtainable from Google AI Studio).
-
-2. Repository Setup
-
+```bash
 # Clone the repository
 git clone https://github.com/yourusername/StudyMate.git
 cd StudyMate
 
 # Create and activate a virtual environment
 python -m venv .venv
+
 # On Windows (PowerShell):
 .\.venv\Scripts\Activate.ps1
+
 # On macOS/Linux:
 source .venv/bin/activate
 
@@ -147,39 +112,51 @@ source .venv/bin/activate
 pip install -e .
 # Or via requirements:
 pip install -r pyproject.toml
+```
 
-3. Environment Configuration
+### 3. Environment Configuration
 
-Copy the .env.example template and configure your connection strings:
+Copy the `.env.example` template and configure your connection strings:
 
+```bash
 cp .env.example .env
+```
 
-Ensure your .env contains the following critical keys:
+Ensure your `.env` contains the following critical keys:
 
+```ini
 DATABASE_URL="postgresql+asyncpg://user:password@ep-xxxx.us-east-1.aws.neon.tech/studymate?sslmode=require"
 JWT_SECRET="your-256-bit-secure-random-jwt-secret-key"
 ENCRYPTION_SECRET="your-64-character-hexadecimal-secret-for-aes-256-gcm"
 GOOGLE_CLIENT_ID="optional-for-oauth"
 GOOGLE_CLIENT_SECRET="optional-for-oauth"
+```
 
-4. Database Migrations
+### 4. Database Migrations
 
-Run Alembic migrations to build the database tables (users, api_keys, file_records, document_cache, session_outputs):
+Run Alembic migrations to build the database tables (`users`, `api_keys`, `file_records`, `document_cache`, `session_outputs`):
 
+```bash
 alembic upgrade head
+```
 
-5. Launch the Application Server
+### 5. Launch the Application Server
 
 Start the Uvicorn asynchronous development server:
 
+```bash
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
 
-Open your browser and navigate to http://127.0.0.1:8000 to experience StudyMate AI HUB!
+Open your browser and navigate to **http://127.0.0.1:8000** to experience StudyMate AI HUB!
 
-🧪 Testing & Verification
+---
+
+## 🧪 Testing & Verification
 
 StudyMate AI HUB includes a rigorous test suite covering API endpoints, database transactions, and browser automation:
 
+```bash
 # Run all unit and integration tests with pytest & asyncio
 pytest tests/ -v --asyncio-mode=auto
 
@@ -188,9 +165,13 @@ mypy app/
 
 # Run code linter & formatter checks
 ruff check app/ static/js/
+```
 
-📁 Project Structure
+---
 
+## 📁 Project Structure
+
+```text
 StudyMate/
 ├── alembic/                  # Alembic asynchronous database migrations
 ├── app/
@@ -208,8 +189,11 @@ StudyMate/
 ├── pyproject.toml            # Project dependencies and tool configurations
 ├── SRS.md                    # Detailed Software Requirements Specification (v2.0)
 └── README.md                 # Project Documentation
+```
 
-🤝 Contributing & License
+---
+
+## 🤝 Contributing & License
 
 Contributions, bug reports, and feature requests are welcome!
 
