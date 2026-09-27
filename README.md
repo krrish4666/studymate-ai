@@ -45,15 +45,15 @@ StudyMate AI HUB enforces strict separation of concerns between its static front
 │   │                        Core Services                           │   │
 │   │   • JWT Auth & Google OAuth 2.0  • AES-256-GCM Key Encryption  │   │
 │   │   • Document Parser (PyMuPDF, docx, pptx, Pillow OCR)          │   │
-│   │   • ReportLab PDF Generator & S3 Object Storage Service        │   │
+│   │   • ReportLab PDF Generator & Local File Storage Service        │   │
 │   └────────────────────────────────────────────────────────────────┘   │
 └────────┬──────────────────────────┬───────────────────────────┬────────┘
          │                          │                           │
          ▼                          ▼                           ▼
 ┌──────────────────┐      ┌──────────────────┐       ┌───────────────────┐
-│ Neon PostgreSQL  │      │  Google Gemini   │       │  AWS S3 / S3-Compat│
-│  (SQLAlchemy 2.0 │      │  3.5 Flash LLM   │       │  Object & File    │
-│    Async ORM)    │      │  (Streaming SSE) │       │  Storage Service  │
+│ Neon PostgreSQL  │      │  Google Gemini   │       │ Local uploads/     │
+│  (SQLAlchemy 2.0 │      │  3.5 Flash LLM   │       │ File Storage       │
+│    Async ORM)    │      │  (Streaming SSE) │       │                   │
 └──────────────────┘      └──────────────────┘       └───────────────────┘
 ```
 

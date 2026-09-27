@@ -81,7 +81,7 @@ StudyMate AI HUB follows a **decoupled client-server architecture**. The fronten
 - **Application Layer**: FastAPI route handlers and background task processors
 - **Data Layer**: SQLAlchemy (async) ORM with Neon PostgreSQL (serverless)
 - **AI Layer**: Google Gemini API via `google-generativeai` Python SDK
-- **Storage Layer**: AWS S3-compatible object storage with local filesystem fallback
+- **Storage Layer**: Local filesystem for uploaded files, with file metadata in Neon PostgreSQL
 
 ### 2.2 High-Level Architecture Diagram
 
@@ -123,7 +123,7 @@ StudyMate AI HUB follows a **decoupled client-server architecture**. The fronten
          ┌───────────────────┼───────────────────┐
          ▼                   ▼                   ▼
  ┌──────────────┐  ┌──────────────────┐  ┌──────────────────┐
- │  PostgreSQL  │  │  Google Gemini   │  │  S3 / Local FS   │
+ │  PostgreSQL  │  │  Google Gemini   │  │  Local uploads/  │
  │  (Neon.tech) │  │  AI API          │  │  (File Storage)   │
  │  Serverless  │  │  (LLM)           │  │                   │
  └──────────────┘  └──────────────────┘  └──────────────────┘
@@ -210,8 +210,7 @@ StudyMate AI HUB follows a **decoupled client-server architecture**. The fronten
 
 | Component | Technology | Version | Purpose |
 |---|---|---|---|
-| File Storage | boto3 (S3-compatible) | ^1.36 | Cloud object storage (primary) |
-| Local Storage | Python pathlib / shutil | Built-in | Local file storage (fallback) |
+| File Storage | Python pathlib | Built-in | Local uploaded-file storage |
 | Email Service | fastapi-mail | ^1.4 | OTP email delivery via Gmail SMTP |
 
 ### 3.10 Development & Quality
@@ -238,10 +237,6 @@ StudyMate AI HUB follows a **decoupled client-server architecture**. The fronten
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
 | `GOOGLE_REDIRECT_URI` | Google OAuth redirect URI |
-| `S3_ENDPOINT` | S3-compatible storage endpoint |
-| `S3_ACCESS_KEY` | S3 access key |
-| `S3_SECRET_KEY` | S3 secret key |
-| `S3_BUCKET_NAME` | S3 bucket name |
 | `ENCRYPTION_SECRET` | 64-char hex key for AES-256-GCM encryption |
 | `SMTP_SERVER` | SMTP server hostname |
 | `SMTP_PORT` | SMTP server port |
@@ -273,7 +268,7 @@ StudyMate AI HUB follows a **decoupled client-server architecture**. The fronten
 | FR-08 | Users shall upload files via drag-and-drop or file picker (native HTML5) | High |
 | FR-09 | Supported file types: PDF, DOCX, PPTX, TXT, JPG, PNG, WebP | High |
 | FR-10 | Maximum file size shall be 25 MB | High |
-| FR-11 | Uploaded files shall be stored in S3-compatible object storage (with local filesystem fallback) | High |
+| FR-11 | Uploaded files shall be stored in the local `uploads/` directory, with metadata in Neon PostgreSQL | High |
 | FR-12 | File type validation shall occur client-side (JS) and server-side (python-magic) | High |
 | FR-13 | Upload progress shall be displayed to the user via XHR progress events | Medium |
 | FR-14 | Text shall be extracted from uploaded files using appropriate Python parsers | High |
@@ -389,7 +384,7 @@ StudyMate AI HUB follows a **decoupled client-server architecture**. The fronten
 | ID | Requirement | Priority |
 |---|---|---|
 | NFR-14 | The system shall handle API failures gracefully with user-friendly error messages | High |
-| NFR-15 | File storage shall fall back to local filesystem if S3 storage is unavailable | Medium |
+| NFR-15 | Uploaded files shall be stored and retrieved from the local filesystem | Medium |
 | NFR-16 | AI generation failures shall be reported with clear error messages | High |
 | NFR-17 | The system shall maintain data integrity through database transactions | Medium |
 
@@ -408,7 +403,7 @@ StudyMate AI HUB follows a **decoupled client-server architecture**. The fronten
 | ID | Requirement | Priority |
 |---|---|---|
 | NFR-23 | The database schema shall support indexing on frequently queried columns (userId, feature, createdAt) | High |
-| NFR-24 | File storage shall use S3-compatible object storage for horizontal scalability | Medium |
+| NFR-24 | File storage shall use the local filesystem for the intended single-instance deployment | Medium |
 | NFR-25 | The backend shall be deployable as a stateless service behind a reverse proxy (Nginx) | High |
 
 ### 5.6 Maintainability
@@ -636,7 +631,7 @@ All API endpoints are served from the FastAPI backend at `/api/*`. Authenticatio
 - **Request Body:** multipart/form-data with file field (via `python-multipart`)
 - **Response:** `200 { fileRecordId: string, fileUrl: string, fileType: string, originalName: string, fileSize: int }`
 - **Validation:** File type whitelist (via python-magic), max 25MB size
-- **Storage:** S3-compatible object storage (primary) → local `uploads/` directory (fallback)
+- **Storage:** Local `uploads/` directory; file metadata is stored in Neon PostgreSQL
 
 ### 8.4 History APIs
 
@@ -895,7 +890,7 @@ All API endpoints are served from the FastAPI backend at `/api/*`. Authenticatio
 
 ### 12.3 Infrastructure Dependencies
 - **Database:** Neon.tech PostgreSQL (serverless, auto-scaling)
-- **File Storage:** S3-compatible object storage (AWS S3, MinIO, DigitalOcean Spaces)
+- **File Storage:** Local `uploads/` directory
 - **AI API:** Google Gemini API
 - **Email:** Gmail SMTP (via fastapi-mail)
 - **OAuth:** Google Cloud Console (OAuth 2.0 credentials)
@@ -931,7 +926,6 @@ All API endpoints are served from the FastAPI backend at `/api/*`. Authenticatio
 | **passlib** | Comprehensive password hashing framework for Python |
 | **authlib** | Python library for OAuth and OpenID Connect |
 | **fastapi-mail** | FastAPI email sending library with SMTP support |
-| **boto3** | AWS SDK for Python (S3-compatible storage) |
 | **Ruff** | Extremely fast Python linter and formatter written in Rust |
 | **mypy** | Static type checker for Python |
 | **pytest** | Python testing framework |

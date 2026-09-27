@@ -20,11 +20,6 @@ class Settings(BaseSettings):
     GOOGLE_REDIRECT_URI: str = ""
     GOOGLE_OAUTH_STATE_COOKIE: str = "studymate_oauth_state"
 
-    S3_ENDPOINT: str = ""
-    S3_ACCESS_KEY: str = ""
-    S3_SECRET_KEY: str = ""
-    S3_BUCKET_NAME: str = ""
-
     ENCRYPTION_SECRET: str = ""
 
     SMTP_SERVER: str = "smtp.gmail.com"

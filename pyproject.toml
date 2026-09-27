@@ -23,7 +23,6 @@ dependencies = [
     "python-magic>=0.4.0",
     "reportlab>=4.3.0",
     "weasyprint>=3.1.0",
-    "boto3>=1.36.0",
     "fastapi-mail>=1.4.0",
     "python-multipart>=0.0.18",
     "httpx>=0.28.0",
