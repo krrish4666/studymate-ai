@@ -203,7 +203,7 @@ StudyMate/
 ## 🤝 Contributing & License
 
 Contributions, bug reports, and feature requests are welcome!  
-Distributed under the **MIT License**. See `LICENSE` for more information.
+
 
 <div align="center">
   <p>Built with ❤️ using <strong>FastAPI</strong>, <strong>PostgreSQL Neon</strong>, and <strong>Google Gemini</strong>.</p>
