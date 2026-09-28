@@ -17,6 +17,41 @@ export async function initNotes() {
 
   let currentContent = '';
   let isGenerating = false;
+  let renderTimer = null;
+
+  const cancelStreamingRender = () => {
+    if (renderTimer !== null) {
+      clearTimeout(renderTimer);
+      renderTimer = null;
+    }
+  };
+
+  const renderStreamingContent = (force = false) => {
+    if (!notesContent || !currentContent) return;
+    if (!force && renderTimer !== null) return;
+
+    if (force) cancelStreamingRender();
+    if (force) {
+      notesContent.innerHTML = renderDocHtml(currentContent);
+      typesetMath(notesContent);
+      return;
+    }
+    renderTimer = setTimeout(() => {
+      renderTimer = null;
+      if (!isGenerating) return;
+      notesContent.innerHTML = renderDocHtml(currentContent);
+      typesetMath(notesContent);
+    }, 120);
+  };
+
+  const showStreamingOutput = () => {
+    show(output, 'block');
+    if (output) {
+      output.hidden = false;
+      output.style.display = 'block';
+    }
+    hide(loadingScreen);
+  };
 
   generateBtn?.addEventListener('click', async () => {
     if (isGenerating) return;
@@ -91,6 +126,7 @@ export async function initNotes() {
 
       let buffer = '';
       let isDone = false;
+      let hadError = false;
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -107,7 +143,9 @@ export async function initNotes() {
             }
             if (data.startsWith('[ERROR]')) {
               isDone = true;
+              hadError = true;
               clearInterval(stepTimer);
+              cancelStreamingRender();
               const errMsg = data.slice(7);
               hide(loadingScreen);
               show(output, 'block');
@@ -129,24 +167,23 @@ export async function initNotes() {
             if (!currentContent) {
               updateLoadingStep('generating');
               if (fileStatus) fileStatus.textContent = 'Generating study notes...';
+              showStreamingOutput();
             }
             currentContent += decodeStreamChunk(data, !!currentContent);
+            renderStreamingContent();
           }
         }
         if (isDone) break;
       }
       clearInterval(stepTimer);
+      if (!hadError) renderStreamingContent(true);
 
-      if ((isDone && !output.querySelector('.card p')) || currentContent) {
+      if (!hadError && ((isDone && !output.querySelector('.card p')) || currentContent)) {
         hide(loadingScreen);
         show(output, 'block');
         if (output) {
           output.hidden = false;
           output.style.display = 'block';
-        }
-        if (notesContent) {
-          notesContent.innerHTML = renderDocHtml(currentContent);
-          typesetMath(notesContent);
         }
         show(downloadBtn, 'inline-block');
         show(relatedActions, 'block');
@@ -157,6 +194,7 @@ export async function initNotes() {
         showToast('Notes generated successfully!', 'success');
       }
     } catch (err) {
+      cancelStreamingRender();
       hide(loadingScreen);
       show(output, 'block');
       if (output) {
@@ -171,6 +209,7 @@ export async function initNotes() {
         fileStatus.className = 'file-status error';
       }
     } finally {
+      cancelStreamingRender();
       generateBtn.disabled = false;
       generateBtn.textContent = originalBtnText || 'Generate Notes';
       isGenerating = false;

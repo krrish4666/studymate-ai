@@ -1,4 +1,5 @@
 from pathlib import Path
+import logging
 
 import filetype
 
@@ -17,6 +18,7 @@ from app.services.file_parser import file_parser
 from app.config import settings
 
 router = APIRouter(prefix="/upload", tags=["Upload"])
+logger = logging.getLogger(__name__)
 
 
 @router.post("", response_model=FileUploadResponse)
@@ -72,6 +74,7 @@ async def upload_file(
     )
     db.add(cache)
     await db.flush()
+    logger.info("Document cache populated during upload")
     await db.refresh(file_record)
 
     return FileUploadResponse(

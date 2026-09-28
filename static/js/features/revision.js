@@ -15,6 +15,41 @@ export async function initRevision() {
 
   let currentContent = '';
   let isGenerating = false;
+  let renderTimer = null;
+
+  const cancelStreamingRender = () => {
+    if (renderTimer !== null) {
+      clearTimeout(renderTimer);
+      renderTimer = null;
+    }
+  };
+
+  const renderStreamingContent = (force = false) => {
+    if (!revisionContent || !currentContent) return;
+    if (!force && renderTimer !== null) return;
+
+    if (force) cancelStreamingRender();
+    if (force) {
+      revisionContent.innerHTML = renderDocHtml(currentContent);
+      typesetMath(revisionContent);
+      return;
+    }
+    renderTimer = setTimeout(() => {
+      renderTimer = null;
+      if (!isGenerating) return;
+      revisionContent.innerHTML = renderDocHtml(currentContent);
+      typesetMath(revisionContent);
+    }, 120);
+  };
+
+  const showStreamingOutput = () => {
+    show(output, 'block');
+    if (output) {
+      output.hidden = false;
+      output.style.display = 'block';
+    }
+    hide(loadingScreen);
+  };
 
   StudyMateUpload.init();
 
@@ -108,19 +143,23 @@ export async function initRevision() {
               isDone = true;
               hadError = true;
               clearInterval(stepTimer);
+              cancelStreamingRender();
               showError(data.slice(7));
               break;
             }
             if (!currentContent) {
               updateLoadingStep('generating');
               if (fileStatus) fileStatus.textContent = 'Generating revision sheet...';
+              showStreamingOutput();
             }
             currentContent += decodeStreamChunk(data, !!currentContent);
+            renderStreamingContent();
           }
         }
         if (isDone) break;
       }
       clearInterval(stepTimer);
+      if (!hadError) renderStreamingContent(true);
 
       if (!hadError && currentContent) {
         hide(loadingScreen);
@@ -128,10 +167,6 @@ export async function initRevision() {
         if (output) {
           output.hidden = false;
           output.style.display = 'block';
-        }
-        if (revisionContent) {
-          revisionContent.innerHTML = renderDocHtml(currentContent);
-          typesetMath(revisionContent);
         }
         show(downloadBtn, 'inline-block');
         if (fileStatus) {
@@ -143,8 +178,10 @@ export async function initRevision() {
         showError('No content generated');
       }
     } catch (err) {
+      cancelStreamingRender();
       showError(err.message || 'Generation error');
     } finally {
+      cancelStreamingRender();
       generateBtn.disabled = false;
       generateBtn.textContent = originalBtnText || 'Generate Revision Sheet';
       isGenerating = false;

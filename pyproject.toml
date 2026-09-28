@@ -29,6 +29,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+redis = [
+    "redis>=5.0.0",
+]
 dev = [
     "ruff>=0.11.0",
     "mypy>=1.15.0",

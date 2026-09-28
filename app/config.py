@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
 
+    REDIS_URL: str = "redis://localhost:6379/0"
+    REDIS_ENABLED: bool = False
+    REDIS_ARTIFACT_TTL_SECONDS: int = 86400
+
     MAX_FILE_SIZE: int = 25 * 1024 * 1024
     ALLOWED_FILE_TYPES: List[str] = [
         "application/pdf",

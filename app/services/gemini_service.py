@@ -1,5 +1,6 @@
 import asyncio
 import functools
+import hashlib
 import json
 import logging
 import re
@@ -10,11 +11,14 @@ import google.api_core.exceptions
 from pydantic import BaseModel, field_validator
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.core.exceptions import BadRequestError
 from app.core.security import decrypt_data
 from app.models.api_key import ApiKey
 from app.models.document_cache import DocumentCache
+from app.models.session_output import SessionOutput
+from app.services.artifact_cache import artifact_cache
 from app.services.file_parser import file_parser
 from app.services.storage_service import storage_service
 
@@ -264,6 +268,7 @@ Return ONLY valid JSON:
 
 class GeminiService:
     DEFAULT_MODEL = "models/gemini-2.5-flash"
+    ARTIFACT_CONTRACT_VERSION = "v1"
 
     async def get_api_key(self, db: AsyncSession, user_id) -> str:
         result = await db.execute(
@@ -287,27 +292,205 @@ class GeminiService:
         genai.configure(api_key=api_key)
         return genai
 
+    def _artifact_payload(
+        self, artifact_type: str, payload: Any
+    ) -> dict[str, Any] | None:
+        try:
+            if artifact_type in {"notes", "revision_sheet"}:
+                if not isinstance(payload, dict) or not isinstance(payload.get("text"), str):
+                    return None
+                text = payload["text"].strip()
+                return {"text": text} if text else None
+            if artifact_type == "flashcards":
+                return FlashcardList.model_validate(payload).model_dump()
+            if artifact_type == "quiz":
+                return QuizList.model_validate(payload).model_dump()
+            if artifact_type == "mindmap":
+                return MindMapSchema.model_validate(payload).model_dump()
+        except Exception:
+            return None
+        return None
+
+    async def _get_cached_artifact(
+        self, key: str, artifact_type: str
+    ) -> dict[str, Any] | None:
+        cached = await artifact_cache.get(key)
+        if cached is None:
+            return None
+        if (
+            cached.get("version") != self.ARTIFACT_CONTRACT_VERSION
+            or cached.get("artifact_type") != artifact_type
+        ):
+            logger.info("Redis artifact cache entry has an old contract version")
+            await artifact_cache.delete(key)
+            return None
+        payload = self._artifact_payload(artifact_type, cached.get("payload"))
+        if payload is None:
+            logger.warning("Redis artifact cache entry failed schema validation")
+            await artifact_cache.delete(key)
+            return None
+        return payload
+
+    async def _set_cached_artifact(
+        self, key: str, artifact_type: str, payload: dict[str, Any]
+    ) -> None:
+        validated = self._artifact_payload(artifact_type, payload)
+        if validated is None:
+            return
+        await artifact_cache.set(
+            key,
+            {
+                "version": self.ARTIFACT_CONTRACT_VERSION,
+                "artifact_type": artifact_type,
+                "payload": validated,
+            },
+        )
+
+    async def _get_reusable_context(
+        self, db: AsyncSession, user_id, file_record_id, artifact_type: str
+    ) -> tuple[str | None, str | None]:
+        preferred_sources = {
+            "revision_sheet": ("notes",),
+            "flashcards": ("notes", "revision"),
+            "quiz": ("notes", "revision"),
+            "mindmap": ("notes", "revision"),
+        }.get(artifact_type, ())
+
+        for source_feature in preferred_sources:
+            result = await db.execute(
+                select(SessionOutput)
+                .where(
+                    SessionOutput.userId == user_id,
+                    SessionOutput.fileRecordId == file_record_id,
+                    SessionOutput.feature == source_feature,
+                )
+                .order_by(SessionOutput.createdAt.desc())
+                .limit(1)
+            )
+            output = result.scalar_one_or_none()
+            if not output:
+                continue
+            if output.outputText and output.outputText.strip():
+                logger.info("Reusing generated artifact as AI context")
+                return source_feature, output.outputText
+            if output.outputJson:
+                context = json.dumps(output.outputJson, separators=(",", ":"))
+                if context:
+                    logger.info("Reusing generated artifact as AI context")
+                    return source_feature, context
+        return None, None
+
+    def _artifact_key(
+        self,
+        user_id,
+        file_record_id,
+        artifact_type: str,
+        parameters: dict[str, Any],
+        source_context: str | None,
+    ) -> str:
+        source_signature = (
+            hashlib.sha256(source_context.encode()).hexdigest()
+            if source_context
+            else None
+        )
+        return artifact_cache.build_key(
+            user_id,
+            file_record_id,
+            artifact_type,
+            parameters={
+                **parameters,
+                "contract_version": self.ARTIFACT_CONTRACT_VERSION,
+            },
+            source_context=source_signature,
+            model=self.DEFAULT_MODEL,
+        )
+
     async def _get_cached_text(self, db: AsyncSession, file_record_id) -> str | None:
         result = await db.execute(
             select(DocumentCache).where(DocumentCache.fileRecordId == file_record_id)
         )
         cache = result.scalar_one_or_none()
-        if cache:
+        if cache and cache.extractedText and cache.extractedText.strip():
+            logger.info("Document cache hit for file record")
             return cache.extractedText
+        if cache:
+            logger.warning("Invalid empty document cache entry; invalidating it")
+            await db.delete(cache)
+            await db.flush()
+        else:
+            logger.info("Document cache miss for file record")
         return None
+
+    async def _store_cached_text(
+        self, db: AsyncSession, file_record_id, extracted_text: str
+    ) -> str:
+        if not extracted_text or not extracted_text.strip():
+            raise BadRequestError("Document contains no extractable text")
+
+        cache = DocumentCache(
+            fileRecordId=file_record_id,
+            extractedText=extracted_text,
+        )
+        try:
+            async with db.begin_nested():
+                db.add(cache)
+                await db.flush()
+        except IntegrityError:
+            logger.info("Document cache population raced with another request")
+            result = await db.execute(
+                select(DocumentCache).where(
+                    DocumentCache.fileRecordId == file_record_id
+                )
+            )
+            existing_cache = result.scalar_one_or_none()
+            if (
+                existing_cache
+                and existing_cache.extractedText
+                and existing_cache.extractedText.strip()
+            ):
+                logger.info("Using document cache populated by concurrent request")
+                return existing_cache.extractedText
+            raise
+        except SQLAlchemyError:
+            logger.exception("Document cache persistence failed")
+            raise
+
+        logger.info("Document cache populated for file record")
+        return extracted_text
 
     async def _extract_file_text(self, db: AsyncSession, file_record) -> str:
         cached = await self._get_cached_text(db, file_record.id)
         if cached:
             return cached
+        logger.info("Extracting document text after cache miss")
         file_data, _ = storage_service.get_stream(file_record.fileUrl)
         text = file_parser.extract_text(file_data.read(), file_record.originalName)
-        return text
+        return await self._store_cached_text(db, file_record.id, text)
 
     async def stream_notes(
         self, db: AsyncSession, user_id, file_record, mode: str, api_key: str, request=None
     ):
         try:
+            source_feature, source_context = await self._get_reusable_context(
+                db, user_id, file_record.id, "notes"
+            )
+            cache_key = self._artifact_key(
+                user_id,
+                file_record.id,
+                "notes",
+                {"mode": mode},
+                source_context,
+            )
+            cached = await self._get_cached_artifact(cache_key, "notes")
+            if cached:
+                cached_text = cached["text"]
+                yield f"data: {json.dumps(cached_text)}\n\n"
+                yield "data: [DONE]\n\n"
+                await self._save_output(
+                    db, user_id, file_record.id, None, cached_text, feature="notes"
+                )
+                return
+
             text_content = await self._extract_file_text(db, file_record)
             genai = self._build_client(api_key)
             model = genai.GenerativeModel(self.DEFAULT_MODEL)
@@ -323,7 +506,8 @@ class GeminiService:
                 f"{mode_instruction}\n\n"
                 "Generate comprehensive study notes from the following material. "
                 "Follow the required format strictly.\n\n"
-                f"Material:\n{text_content[:50000]}"
+                f"Material ({source_feature or 'document'}):\n"
+                f"{(source_context or text_content)[:50000]}"
             )
 
             response = await model.generate_content_async(prompt, stream=True)
@@ -338,6 +522,9 @@ class GeminiService:
 
             yield "data: [DONE]\n\n"
             await self._save_output(db, user_id, file_record.id, None, full_text)
+            await self._set_cached_artifact(
+                cache_key, "notes", {"text": full_text}
+            )
         except Exception as e:
             logger.error(f"Error in stream_notes: {str(e)}")
             yield f"data: [ERROR] AI generation failed. Please try again.\n\n"
@@ -346,13 +533,35 @@ class GeminiService:
         self, db: AsyncSession, user_id, file_record, api_key: str, request=None
     ):
         try:
+            source_feature, source_context = await self._get_reusable_context(
+                db, user_id, file_record.id, "revision_sheet"
+            )
+            cache_key = self._artifact_key(
+                user_id, file_record.id, "revision_sheet", {}, source_context
+            )
+            cached = await self._get_cached_artifact(cache_key, "revision_sheet")
+            if cached:
+                cached_text = cached["text"]
+                yield f"data: {json.dumps(cached_text)}\n\n"
+                yield "data: [DONE]\n\n"
+                await self._save_output(
+                    db,
+                    user_id,
+                    file_record.id,
+                    None,
+                    cached_text,
+                    feature="revision",
+                )
+                return
+
             text_content = await self._extract_file_text(db, file_record)
             genai = self._build_client(api_key)
             model = genai.GenerativeModel(self.DEFAULT_MODEL)
 
             prompt = (
                 f"{REVISION_SYSTEM_PROMPT}\n\n"
-                f"Material:\n{text_content[:50000]}"
+                f"Material ({source_feature or 'document'}):\n"
+                f"{(source_context or text_content)[:50000]}"
             )
 
             response = await model.generate_content_async(prompt, stream=True)
@@ -368,6 +577,9 @@ class GeminiService:
             yield "data: [DONE]\n\n"
             await self._save_output(
                 db, user_id, file_record.id, None, full_text, feature="revision"
+            )
+            await self._set_cached_artifact(
+                cache_key, "revision_sheet", {"text": full_text}
             )
         except Exception as e:
             logger.error(f"Error in stream_revision: {str(e)}")
@@ -400,6 +612,27 @@ class GeminiService:
         self, db: AsyncSession, user_id, file_record, api_key: str,
         difficulty: str = "medium", count: int = 10,
     ) -> list[dict]:
+        source_feature, source_context = await self._get_reusable_context(
+            db, user_id, file_record.id, "quiz"
+        )
+        cache_key = self._artifact_key(
+            user_id,
+            file_record.id,
+            "quiz",
+            {"difficulty": difficulty, "count": count},
+            source_context,
+        )
+        cached = await self._get_cached_artifact(cache_key, "quiz")
+        if cached:
+            questions = cached["questions"]
+            await self._save_output(
+                db, user_id, file_record.id,
+                output_json={"questions": questions},
+                output_text=None,
+                feature="quiz",
+            )
+            return questions
+
         text_content = await self._extract_file_text(db, file_record)
         genai = self._build_client(api_key)
         model = genai.GenerativeModel(self.DEFAULT_MODEL)
@@ -408,7 +641,8 @@ class GeminiService:
             f"{QUIZ_SYSTEM_PROMPT}\n\n"
             f"Generate exactly {count} multiple-choice questions.\n\n"
             f"Difficulty: {difficulty}\n"
-            f"Material:\n{text_content[:50000]}"
+            f"Material ({source_feature or 'document'}):\n"
+            f"{(source_context or text_content)[:50000]}"
         )
 
         result = await self._call_gemini_json(model, prompt)
@@ -438,18 +672,39 @@ class GeminiService:
             output_text=None,
             feature="quiz",
         )
+        await self._set_cached_artifact(
+            cache_key, "quiz", {"questions": questions}
+        )
         return questions
 
     async def generate_mindmap(
         self, db: AsyncSession, user_id, file_record, api_key: str,
     ) -> dict:
+        source_feature, source_context = await self._get_reusable_context(
+            db, user_id, file_record.id, "mindmap"
+        )
+        cache_key = self._artifact_key(
+            user_id, file_record.id, "mindmap", {}, source_context
+        )
+        cached = await self._get_cached_artifact(cache_key, "mindmap")
+        if cached:
+            mindmap = cached["mindmap"]
+            await self._save_output(
+                db, user_id, file_record.id,
+                output_json={"mindmap": mindmap},
+                output_text=None,
+                feature="mindmap",
+            )
+            return mindmap
+
         text_content = await self._extract_file_text(db, file_record)
         genai = self._build_client(api_key)
         model = genai.GenerativeModel(self.DEFAULT_MODEL)
 
         prompt = (
             f"{MINDMAP_SYSTEM_PROMPT}\n\n"
-            f"Material:\n{text_content[:50000]}"
+            f"Material ({source_feature or 'document'}):\n"
+            f"{(source_context or text_content)[:50000]}"
         )
 
         result = await self._call_gemini_json(model, prompt)
@@ -473,18 +728,39 @@ class GeminiService:
             output_text=None,
             feature="mindmap",
         )
+        await self._set_cached_artifact(
+            cache_key, "mindmap", {"mindmap": mindmap}
+        )
         return mindmap
 
     async def generate_flashcards(
         self, db: AsyncSession, user_id, file_record, api_key: str
     ) -> list[dict]:
+        source_feature, source_context = await self._get_reusable_context(
+            db, user_id, file_record.id, "flashcards"
+        )
+        cache_key = self._artifact_key(
+            user_id, file_record.id, "flashcards", {}, source_context
+        )
+        cached = await self._get_cached_artifact(cache_key, "flashcards")
+        if cached:
+            flashcards = cached["flashcards"]
+            await self._save_output(
+                db, user_id, file_record.id,
+                output_json={"flashcards": flashcards},
+                output_text=None,
+                feature="flashcards",
+            )
+            return flashcards
+
         text_content = await self._extract_file_text(db, file_record)
         genai = self._build_client(api_key)
         model = genai.GenerativeModel(self.DEFAULT_MODEL)
 
         prompt = (
             f"{FLASHCARDS_SYSTEM_PROMPT}\n\n"
-            f"Material:\n{text_content[:50000]}"
+            f"Material ({source_feature or 'document'}):\n"
+            f"{(source_context or text_content)[:50000]}"
         )
 
         result = await self._call_gemini_json(model, prompt)
@@ -512,6 +788,9 @@ class GeminiService:
             output_json={"flashcards": flashcards},
             output_text=None,
             feature="flashcards",
+        )
+        await self._set_cached_artifact(
+            cache_key, "flashcards", {"flashcards": flashcards}
         )
         return flashcards
 

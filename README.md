@@ -91,6 +91,7 @@ StudyMate AI HUB enforces strict separation of concerns between its static front
 * **Python 3.12+** installed on your system.
 * **PostgreSQL database instance** (e.g., free serverless database at [Neon.tech](https://neon.tech/)).
 * **Google Gemini API Key** (obtainable from [Google AI Studio](https://aistudio.google.com/)).
+* **Optional Redis instance** for caching validated AI artifacts. StudyMate continues normally if Redis is disabled or unavailable.
 
 ### 2. Repository Setup
 
@@ -112,6 +113,8 @@ source .venv/bin/activate
 pip install -e .
 # Or via requirements:
 pip install -r pyproject.toml
+# Optional Redis client/cache support:
+pip install -e ".[redis]"
 ```
 
 ### 3. Environment Configuration
@@ -130,7 +133,14 @@ JWT_SECRET="your-256-bit-secure-random-jwt-secret-key"
 ENCRYPTION_SECRET="your-64-character-hexadecimal-secret-for-aes-256-gcm"
 GOOGLE_CLIENT_ID="optional-for-oauth"
 GOOGLE_CLIENT_SECRET="optional-for-oauth"
+REDIS_ENABLED="false"
+REDIS_URL="redis://localhost:6379/0"
+REDIS_ARTIFACT_TTL_SECONDS="86400"
 ```
+
+Set `REDIS_ENABLED=true` when a local Redis server is running, or provide the deployment
+environment's `REDIS_URL` in production. Redis is only an AI-artifact cache; PostgreSQL
+remains responsible for persistent document-text caching.
 
 ### 4. Database Migrations
 
