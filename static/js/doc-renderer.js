@@ -1,4 +1,4 @@
-import { showToast, markdownToHtml } from './utils.js?v=7';
+import { showToast, markdownToHtml } from './utils.js?v=8';
 
 // Shared document renderer used by the Notes Viewer and Revision Cheat Sheet.
 // Renders markdown into the document-style canvas (.notes-document /

@@ -1,5 +1,6 @@
-import { showToast, hide, show } from '../utils.js?v=7';
+import { showToast, hide, show, errorStateHtml } from '../utils.js?v=8';
 import { renderDocHtml, typesetMath, exportDocPdf, decodeStreamChunk } from '../doc-renderer.js?v=1';
+import { enterCompletedState } from './generation-state.js?v=8';
 
 const exportRevisionPdf = () => exportDocPdf('revision-content', 'Revision Cheat Sheet');
 
@@ -87,7 +88,7 @@ export async function initRevision() {
         output.hidden = false;
         output.style.display = 'block';
       }
-      output.innerHTML = `<div class="card" style="padding:40px;text-align:center;"><p style="color:var(--color-error);font-weight:600;font-size:1.1rem;">${msg}</p></div>`;
+      output.innerHTML = errorStateHtml("We couldn't generate your revision sheet", msg);
       showToast(msg, 'error');
       if (fileStatus) {
         fileStatus.textContent = 'Generation failed';
@@ -174,6 +175,7 @@ export async function initRevision() {
           fileStatus.className = 'file-status success';
         }
         showToast('Revision sheet generated successfully!', 'success');
+        enterCompletedState();
       } else if (!hadError && !currentContent) {
         showError('No content generated');
       }
@@ -221,6 +223,7 @@ async function loadHistoryRevision(fileId) {
       show(downloadBtn, 'inline-block');
       downloadBtn?.addEventListener('click', exportRevisionPdf);
       StudyMateUpload.setFromHistory(fileId);
+      enterCompletedState(true);
     }
   } catch {
     show(output, 'block');

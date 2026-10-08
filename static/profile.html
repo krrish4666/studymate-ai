@@ -5,102 +5,124 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Profile — StudyMate AI HUB</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/styles.css">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/styles.css?v=8">
 </head>
 <body>
   <header>
-    <nav class="navbar">
-      <a href="/" class="logo">StudyMate AI</a>
-      <ul class="nav-links">
-        <li><a href="/feature/notes">Notes</a></li>
-        <li><a href="/feature/flashcards">Flashcards</a></li>
-        <li><a href="/feature/quiz">Quiz</a></li>
-        <li><a href="/feature/mindmap">Mind Map</a></li>
-        <li><a href="/feature/revision">Revision</a></li>
-        <li><a href="/history">History</a></li>
-      </ul>
-      <div id="auth-ui" class="nav-actions"></div>
-      <button class="mobile-menu-toggle" aria-label="Menu">&#9776;</button>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <nav class="navbar" aria-label="Main navigation">
+      <a href="/" class="logo">
+        <svg class="logo-mark" width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <path d="M16 7.5 6.5 12l9.5 4.75L25.5 12 16 7.5Z" fill="currentColor"/>
+          <path d="M10 14.75V19c0 1.5 2.75 3 6 3s6-1.5 6-3v-4.25" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M25.5 12v5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        StudyMate AI
+      </a>
+      <div class="nav-menu" id="nav-menu">
+        <ul class="nav-links">
+          <li class="nav-item nav-app"><a href="/feature/notes">Notes</a></li>
+          <li class="nav-item nav-app"><a href="/feature/flashcards">Flashcards</a></li>
+          <li class="nav-item nav-app"><a href="/feature/quiz">Quiz</a></li>
+          <li class="nav-item nav-app"><a href="/feature/mindmap">Mind Map</a></li>
+          <li class="nav-item nav-app"><a href="/feature/revision">Revision</a></li>
+          <li class="nav-item nav-app"><a href="/history">History</a></li>
+          <li class="nav-item nav-guest"><a href="/features">Features</a></li>
+          <li class="nav-item nav-guest"><a href="/about">About</a></li>
+        </ul>
+        <div id="auth-ui" class="nav-actions"></div>
+      </div>
+      <button class="mobile-menu-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="nav-menu">
+        <svg class="icon-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        <svg class="icon-close" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
     </nav>
   </header>
 
-  <main class="page-container">
-    <h1 style="margin-bottom:24px;">Profile Settings</h1>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+  <main class="page-container" id="main-content">
+    <div class="page-head">
       <div>
-        <div class="card" style="margin-bottom:24px;">
-          <h2 style="margin-bottom:16px;">Account Info</h2>
-          <p><strong>Name:</strong> <span id="profile-name"></span></p>
-          <p><strong>Email:</strong> <span id="profile-email"></span></p>
-        </div>
+        <h1>Profile &amp; Settings</h1>
+        <p class="page-subtitle">Manage your account, personalize the appearance, and connect your AI provider.</p>
+      </div>
+    </div>
 
-        <div class="card" style="margin-bottom:24px;">
-          <h2 style="margin-bottom:16px;">Edit Profile</h2>
+    <div class="profile-layout">
+      <div class="profile-col">
+        <section class="card profile-card">
+          <h2>Account</h2>
+          <div class="profile-kv">
+            <p><strong id="profile-name">—</strong></p>
+            <p id="profile-email">—</p>
+          </div>
+        </section>
+
+        <section class="card profile-card">
+          <h2>Display name</h2>
           <form id="profile-form">
             <div class="form-group">
-              <label for="edit-name">Display Name</label>
-              <input type="text" id="edit-name" class="form-input">
+              <label class="control-label" for="edit-name">Name</label>
+              <input type="text" id="edit-name" class="form-input" placeholder="Your name">
             </div>
-            <button type="submit" class="btn btn-primary">Save Changes</button>
+            <button type="submit" class="btn btn-primary">Save changes</button>
           </form>
-        </div>
+        </section>
 
-        <div class="card">
-          <h2 style="margin-bottom:16px;">Usage Statistics</h2>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-            <div class="stat-card card">
+        <section class="card profile-card">
+          <h2>Usage</h2>
+          <div class="stat-grid">
+            <div class="card stat-card">
               <div class="value" id="stats-files">0</div>
-              <div class="label">Files Processed</div>
+              <div class="label">Documents processed</div>
             </div>
-            <div class="stat-card card">
+            <div class="card stat-card">
               <div class="value" id="stats-sessions">0</div>
-              <div class="label">Sessions</div>
+              <div class="label">Sessions generated</div>
             </div>
           </div>
-        </div>
+        </section>
       </div>
 
-      <div>
-        <div class="card" style="margin-bottom:24px;">
-          <h2 style="margin-bottom:16px;">Theme</h2>
+      <div class="profile-col">
+        <section class="card profile-card">
+          <h2>Appearance</h2>
+          <p class="card-note">Choose a theme — it's saved to this device.</p>
           <div id="theme-grid" class="theme-grid"></div>
-        </div>
+        </section>
 
-        <div class="card">
-          <h2 style="margin-bottom:16px;">API Keys</h2>
-          <p style="color:var(--color-muted-text);font-size:0.85rem;margin-bottom:16px;">
-            Add your Google Gemini API key to enable AI features.
-          </p>
-          <div id="api-keys-list" style="margin-bottom:16px;"></div>
+        <section class="card profile-card">
+          <h2>AI provider</h2>
+          <p class="card-note">Add your Google Gemini API key to enable AI features. It's stored securely and never shared.</p>
+          <div id="api-keys-list" style="margin-bottom: var(--space-md);"></div>
           <form id="api-key-form">
             <div class="form-group">
-              <label for="key-provider">Provider</label>
+              <label class="control-label" for="key-provider">Provider</label>
               <select id="key-provider" class="form-input">
                 <option value="gemini">Google Gemini</option>
               </select>
             </div>
             <div class="form-group">
-              <label for="key-value">API Key</label>
+              <label class="control-label" for="key-value">API key</label>
               <input type="password" id="key-value" class="form-input" placeholder="Enter your API key" required>
             </div>
             <div class="form-group">
-              <label for="key-label">Label (optional)</label>
-              <input type="text" id="key-label" class="form-input" placeholder="e.g. My Gemini Key">
+              <label class="control-label" for="key-label">Label <span style="font-weight:400;color:var(--color-muted-text);">(optional)</span></label>
+              <input type="text" id="key-label" class="form-input" placeholder="e.g. My Gemini key">
             </div>
-            <button type="submit" class="btn btn-primary">Add API Key</button>
+            <button type="submit" class="btn btn-primary">Add API key</button>
           </form>
-        </div>
+        </section>
       </div>
     </div>
   </main>
 
   <script type="module">
     import { requireAuth } from '/static/js/auth.js';
-    import { initProfile } from '/static/js/pages/profile.js';
+    import { initProfile } from '/static/js/pages/profile.js?v=8';
     if (requireAuth()) initProfile();
   </script>
-  <script type="module" src="/static/js/main.js"></script>
+  <script type="module" src="/static/js/main.js?v=8"></script>
 </body>
 </html>

@@ -216,3 +216,38 @@ export function formatFileSize(bytes) {
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
+
+export const DOC_ICON =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+  '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>' +
+  '<path d="M14 2v5h6"/><path d="M9 13h6"/><path d="M9 17h4"/></svg>';
+
+export function statusPill(status) {
+  const done = status === 'done';
+  const failed = status === 'failed' || status === 'error';
+  const cls = failed ? 'status-failed' : done ? 'status-done' : 'status-processing';
+  const label = failed ? 'Failed' : done ? 'Processed' : 'Processing';
+  return `<span class="status-pill ${cls}">${label}</span>`;
+}
+
+export function errorStateHtml(title, detail) {
+  return `<div class="error-state">
+    <span class="error-state-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+    </span>
+    <h3 class="error-state-title">${title}</h3>
+    <p class="error-state-text">${detail}</p>
+    <p class="error-state-hint">Try uploading your file again, or use different settings.</p>
+  </div>`;
+}
+
+export function emptyStateHtml(title, text, cta) {
+  return `<div class="empty-state">
+    <span class="empty-state-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
+    </span>
+    <h3 class="empty-state-title">${title}</h3>
+    <p class="empty-state-text">${text}</p>
+    ${cta || ''}
+  </div>`;
+}

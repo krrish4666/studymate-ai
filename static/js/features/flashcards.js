@@ -1,5 +1,6 @@
 import { apiPost } from '../api.js';
-import { showToast, hide, show } from '../utils.js';
+import { showToast, hide, show, errorStateHtml, emptyStateHtml } from '../utils.js?v=8';
+import { enterCompletedState } from './generation-state.js?v=8';
 
 export async function initFlashcards() {
   const fileId = new URLSearchParams(location.search).get('historyId');
@@ -30,6 +31,8 @@ export async function initFlashcards() {
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: 'Generation failed' }));
         hide(loadingScreen);
+        show(output, 'block');
+        output.innerHTML = errorStateHtml("We couldn't generate your flashcards", err.detail || 'Generation failed');
         showToast(err.detail || 'Generation failed', 'error');
         return;
       }
@@ -37,15 +40,20 @@ export async function initFlashcards() {
       flashcards = data.flashcards || [];
       if (flashcards.length === 0) {
         hide(loadingScreen);
+        show(output, 'block');
+        output.innerHTML = emptyStateHtml('No flashcards generated', "We couldn't create flashcards from this file. Try uploading a different document.");
         showToast('No flashcards could be generated from this file', 'warning');
         return;
       }
       hide(loadingScreen);
       show(output);
       show(downloadBtn);
+      enterCompletedState();
       renderFlashcardGrid();
     } catch (err) {
       hide(loadingScreen);
+      show(output, 'block');
+      output.innerHTML = errorStateHtml('Something went wrong', err.message || 'An unexpected error occurred');
       showToast(err.message || 'An unexpected error occurred', 'error');
     } finally {
       generateBtn.disabled = false;
@@ -123,6 +131,7 @@ async function loadHistoryFlashcards(fileId) {
     if (flashcards.length > 0) {
       show(output);
       StudyMateUpload.setFromHistory(fileId);
+      enterCompletedState(true);
       show(document.getElementById('download-pdf'));
       const grid = document.getElementById('flashcard-grid');
       grid.innerHTML = '';

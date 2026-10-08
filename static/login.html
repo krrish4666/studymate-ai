@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sign In — StudyMate AI HUB</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/styles.css">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/styles.css?v=8">
 </head>
 <body>
   <div class="auth-page">
@@ -53,7 +54,7 @@
 
   <script type="module">
     import { login, redirectIfAuthenticated, handleOAuthCallback } from '/static/js/auth.js?v=3';
-    import { showToast } from '/static/js/utils.js?v=2';
+    import { showToast } from '/static/js/utils.js?v=8';
     redirectIfAuthenticated();
     handleOAuthCallback();
 

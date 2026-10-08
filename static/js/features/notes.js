@@ -1,5 +1,6 @@
-import { showToast, hide, show } from '../utils.js?v=7';
+import { showToast, hide, show, errorStateHtml } from '../utils.js?v=8';
 import { renderDocHtml, typesetMath, exportDocPdf, decodeStreamChunk } from '../doc-renderer.js?v=1';
+import { enterCompletedState } from './generation-state.js?v=8';
 
 const exportNotesPdf = () => exportDocPdf('notes-content', 'Study Notes');
 
@@ -99,7 +100,7 @@ export async function initNotes() {
           output.hidden = false;
           output.style.display = 'block';
         }
-        output.innerHTML = `<div class="card" style="padding:40px;text-align:center;"><p style="color:var(--color-error);font-weight:600;font-size:1.1rem;">${errDetail}</p></div>`;
+        output.innerHTML = errorStateHtml("We couldn't generate your notes", errDetail);
         showToast(errDetail, 'error');
         if (fileStatus) {
           fileStatus.textContent = 'Generation failed';
@@ -153,7 +154,7 @@ export async function initNotes() {
                 output.hidden = false;
                 output.style.display = 'block';
               }
-              output.innerHTML = `<div class="card" style="padding:40px;text-align:center;"><p style="color:var(--color-error);font-weight:600;font-size:1.1rem;">${errMsg}</p></div>`;
+              output.innerHTML = errorStateHtml("We couldn't generate your notes", errMsg);
               showToast(errMsg, 'error');
               if (fileStatus) {
                 fileStatus.textContent = 'Generation failed';
@@ -192,6 +193,7 @@ export async function initNotes() {
           fileStatus.className = 'file-status success';
         }
         showToast('Notes generated successfully!', 'success');
+        enterCompletedState();
       }
     } catch (err) {
       cancelStreamingRender();
@@ -202,7 +204,7 @@ export async function initNotes() {
         output.style.display = 'block';
       }
       const errMsg = err.message || 'Generation error';
-      output.innerHTML = `<div class="card" style="padding:40px;text-align:center;"><p style="color:var(--color-error);font-weight:600;font-size:1.1rem;">${errMsg}</p></div>`;
+      output.innerHTML = errorStateHtml("We couldn't generate your notes", errMsg);
       showToast(errMsg, 'error');
       if (fileStatus) {
         fileStatus.textContent = 'Generation failed';
@@ -249,6 +251,7 @@ async function loadHistoryNotes(fileId) {
       show(downloadBtn, 'inline-block');
       downloadBtn?.addEventListener('click', exportNotesPdf);
       StudyMateUpload.setFromHistory(fileId);
+      enterCompletedState(true);
     }
   } catch {
     show(output, 'block');

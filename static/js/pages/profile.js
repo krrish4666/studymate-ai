@@ -1,6 +1,6 @@
-import { apiGet, apiPost, apiPatch, apiDelete } from '../api.js';
-import { showToast, $, $$ } from '../utils.js';
-import { loadTheme, applyTheme, applyCustomTheme, getThemes, getCustomColors } from '../theme.js';
+import { apiGet, apiPost, apiPatch, apiDelete } from '../api.js?v=8';
+import { showToast, $, $$ } from '../utils.js?v=8';
+import { loadTheme, applyTheme, applyCustomTheme, getThemes, getCustomColors } from '../theme.js?v=8';
 
 export async function initProfile() {
   await loadProfile();
@@ -72,14 +72,14 @@ async function initApiKeys() {
       if (!res.ok) throw new Error();
       const keys = await res.json();
       if (keys.length === 0) {
-        list.innerHTML = '<p style="color:var(--color-muted-text);text-align:center;padding:20px;">No API keys added yet</p>';
+        list.innerHTML = '<p class="empty-text">No API keys added yet — add one above to enable AI features.</p>';
         return;
       }
       list.innerHTML = keys.map(k => `
-        <div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:16px;">
+        <div class="key-item">
           <div>
             <strong>${k.provider}</strong>
-            ${k.label ? `<span style="color:var(--color-muted-text);font-size:0.85rem;"> - ${k.label}</span>` : ''}
+            ${k.label ? `<span class="key-label"> &middot; ${k.label}</span>` : ''}
           </div>
           <button class="btn btn-danger btn-sm delete-key" data-id="${k.id}">Delete</button>
         </div>

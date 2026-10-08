@@ -1,5 +1,6 @@
 import { apiPost } from '../api.js';
-import { showToast, hide, show } from '../utils.js?v=7';
+import { showToast, hide, show, errorStateHtml, emptyStateHtml } from '../utils.js?v=8';
+import { enterCompletedState } from './generation-state.js?v=8';
 
 export async function initMindmap() {
   const fileId = new URLSearchParams(location.search).get('historyId');
@@ -49,6 +50,8 @@ export async function initMindmap() {
         const err = await res.json().catch(() => ({ detail: 'Generation failed' }));
         const errDetail = err.detail || 'Generation failed';
         hide(loadingScreen);
+        show(output, 'block');
+        output.innerHTML = errorStateHtml("We couldn't generate your mind map", errDetail);
         showToast(errDetail, 'error');
         if (fileStatus) {
           fileStatus.textContent = 'Generation failed';
@@ -63,6 +66,8 @@ export async function initMindmap() {
       currentMindmap = data.mindmap;
       if (!currentMindmap) {
         hide(loadingScreen);
+        show(output, 'block');
+        output.innerHTML = emptyStateHtml('No mind map generated', "We couldn't build a mind map from this file. Try uploading a different document.");
         showToast('No mindmap could be generated from this file', 'warning');
         if (fileStatus) {
           fileStatus.textContent = 'No mindmap generated';
@@ -86,9 +91,12 @@ export async function initMindmap() {
       showToast('Mindmap generated successfully!', 'success');
       renderMindmap(currentMindmap);
       show(downloadBtn);
+      enterCompletedState();
     } catch (err) {
       hide(loadingScreen);
       const errMsg = err.message || 'Generation error';
+      show(output, 'block');
+      output.innerHTML = errorStateHtml('Something went wrong', errMsg);
       showToast(errMsg, 'error');
       if (fileStatus) {
         fileStatus.textContent = 'Generation failed';
@@ -302,6 +310,7 @@ async function loadHistoryMindmap(fileId) {
     if (mindmap) {
       show(output);
       StudyMateUpload.setFromHistory(fileId);
+      enterCompletedState(true);
       renderMindmap(mindmap);
       show(document.getElementById('download-pdf'));
     }

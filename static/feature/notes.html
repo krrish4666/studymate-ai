@@ -5,11 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Notes — StudyMate AI HUB</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <link rel="stylesheet" href="/static/css/styles.css?v=6">
+  <link rel="stylesheet" href="/static/css/styles.css?v=8">
   <!-- Markdown + Math rendering for the Notes Viewer -->
   <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js" defer></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
@@ -18,23 +19,37 @@
 </head>
 <body>
   <header>
-    <nav class="navbar">
-      <a href="/" class="logo">StudyMate AI</a>
-      <ul class="nav-links">
-        <li><a href="/feature/notes" class="active">Notes</a></li>
-        <li><a href="/feature/flashcards">Flashcards</a></li>
-        <li><a href="/feature/quiz">Quiz</a></li>
-        <li><a href="/feature/mindmap">Mind Map</a></li>
-        <li><a href="/feature/revision">Revision</a></li>
-        <li><a href="/history">History</a></li>
-        <li><a href="/profile">Profile</a></li>
-      </ul>
-      <div id="auth-ui" class="nav-actions"></div>
-      <button class="mobile-menu-toggle" aria-label="Menu">&#9776;</button>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <nav class="navbar" aria-label="Main navigation">
+      <a href="/" class="logo">
+        <svg class="logo-mark" width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <path d="M16 7.5 6.5 12l9.5 4.75L25.5 12 16 7.5Z" fill="currentColor"/>
+          <path d="M10 14.75V19c0 1.5 2.75 3 6 3s6-1.5 6-3v-4.25" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M25.5 12v5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        StudyMate AI
+      </a>
+      <div class="nav-menu" id="nav-menu">
+        <ul class="nav-links">
+          <li class="nav-item nav-app"><a href="/feature/notes" class="active" aria-current="page">Notes</a></li>
+          <li class="nav-item nav-app"><a href="/feature/flashcards">Flashcards</a></li>
+          <li class="nav-item nav-app"><a href="/feature/quiz">Quiz</a></li>
+          <li class="nav-item nav-app"><a href="/feature/mindmap">Mind Map</a></li>
+          <li class="nav-item nav-app"><a href="/feature/revision">Revision</a></li>
+          <li class="nav-item nav-app"><a href="/history">History</a></li>
+          <li class="nav-item nav-guest"><a href="/features">Features</a></li>
+          <li class="nav-item nav-guest"><a href="/about">About</a></li>
+        </ul>
+        <div id="auth-ui" class="nav-actions"></div>
+      </div>
+      <button class="mobile-menu-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="nav-menu">
+        <svg class="icon-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        <svg class="icon-close" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
     </nav>
   </header>
 
-  <main class="page-container">
+  <main class="page-container" id="main-content">
     <div class="feature-header">
       <h1>Notes Generator</h1>
       <p>Upload study material and get AI-powered structured notes</p>
@@ -42,9 +57,11 @@
 
     <section class="upload-area" id="upload-area">
       <div class="upload-zone" id="dropzone" data-feature="notes">
-        <div class="icon">&#128196;</div>
-        <p>Drag & drop files here or click to browse</p>
-        <p style="font-size:0.8rem;margin-top:8px;">PDF, DOCX, PPTX, TXT, JPG, PNG, WebP (max 25 MB)</p>
+        <span class="upload-zone-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4Z"/><path d="M8 7h8"/><path d="M8 11h8"/><path d="M8 15h5"/></svg></span>
+        <h2 class="upload-zone-title">Upload your study material</h2>
+        <p class="upload-zone-text">Drag &amp; drop your file here, or click to browse</p>
+        <p class="upload-zone-formats">PDF, DOCX, PPTX, TXT, JPG, PNG, WebP &middot; up to 25 MB</p>
+        <span class="btn btn-primary upload-zone-cta">Choose a file</span>
         <input type="file" id="file-input" hidden accept=".pdf,.docx,.pptx,.txt,.jpg,.jpeg,.png,.webp">
       </div>
       <div id="upload-progress" class="progress-bar" hidden><div class="fill" style="width:0%"></div></div>
@@ -52,22 +69,25 @@
 
     <div id="file-info" class="file-info-card" hidden style="display: none;">
       <div class="file-info-content">
-        <span class="file-icon">&#128196;</span>
+        <span class="file-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h6"/><path d="M9 13h6"/><path d="M9 17h4"/></svg></span>
         <div class="file-details">
           <span class="file-name" id="file-name"></span>
           <span class="file-size" id="file-size"></span>
           <span class="file-status success" id="file-status">Ready to generate</span>
         </div>
       </div>
-      <button class="btn btn-secondary btn-sm" id="remove-file-btn">Remove / Change File</button>
+      <button class="btn btn-secondary btn-sm" id="remove-file-btn">Change file</button>
     </div>
 
     <div class="feature-controls" id="feature-controls" hidden>
       <div class="controls-row">
-        <select id="notes-mode" class="form-input" style="width:auto;">
-          <option value="detailed">Detailed</option>
-          <option value="compact">Compact</option>
-        </select>
+        <div class="control-field">
+          <label class="control-label" for="notes-mode">Note style</label>
+          <select id="notes-mode" class="form-input">
+            <option value="detailed">Detailed</option>
+            <option value="compact">Compact</option>
+          </select>
+        </div>
         <button class="btn btn-primary" id="generate-btn">Generate Notes</button>
       </div>
     </div>
@@ -75,6 +95,8 @@
     <div id="loading-screen" class="loading-screen" hidden>
       <div class="loading-content">
         <div class="loading-spinner"></div>
+        <h2 class="loading-title">Preparing your request</h2>
+        <p class="loading-subtitle">This usually takes a few seconds — hang tight.</p>
         <div class="loading-steps">
           <div class="loading-step active" data-step="analyzing">Analyzing document...</div>
           <div class="loading-step" data-step="extracting">Extracting text...</div>
@@ -118,12 +140,12 @@
     </section>
   </main>
 
-  <script src="/static/js/upload.js?v=6" defer></script>
+  <script src="/static/js/upload.js?v=8" defer></script>
   <script type="module">
     import { requireAuth } from '/static/js/auth.js';
-    import { initNotes } from '/static/js/features/notes.js?v=10';
+    import { initNotes } from '/static/js/features/notes.js?v=8';
     if (requireAuth()) initNotes();
   </script>
-  <script type="module" src="/static/js/main.js?v=2"></script>
+  <script type="module" src="/static/js/main.js?v=8"></script>
 </body>
 </html>

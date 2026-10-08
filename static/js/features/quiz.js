@@ -1,5 +1,6 @@
 import { apiPost } from '../api.js';
-import { showToast, $, hide, show } from '../utils.js?v=7';
+import { showToast, $, hide, show, errorStateHtml, emptyStateHtml } from '../utils.js?v=8';
+import { enterCompletedState } from './generation-state.js?v=8';
 
 export async function initQuiz() {
   const fileId = new URLSearchParams(location.search).get('historyId');
@@ -62,7 +63,7 @@ export async function initQuiz() {
           output.hidden = false;
           output.style.display = 'block';
         }
-        output.innerHTML = `<div class="card" style="padding:40px;text-align:center;"><p style="color:var(--color-error);font-weight:600;font-size:1.1rem;">${errDetail}</p></div>`;
+        output.innerHTML = errorStateHtml("We couldn't generate your quiz", errDetail);
         showToast(errDetail, 'error');
         if (fileStatus) {
           fileStatus.textContent = 'Generation failed';
@@ -82,7 +83,7 @@ export async function initQuiz() {
           output.hidden = false;
           output.style.display = 'block';
         }
-        output.innerHTML = '<p style="color:var(--color-muted-text);text-align:center;padding:40px;">No questions generated</p>';
+        output.innerHTML = emptyStateHtml("No questions generated", "We couldn't create questions from this file. Try a different document or adjust the settings.");
         if (fileStatus) {
           fileStatus.textContent = 'No questions generated';
           fileStatus.className = 'file-status error';
@@ -106,6 +107,7 @@ export async function initQuiz() {
         fileStatus.className = 'file-status success';
       }
       showToast('Quiz generated successfully!', 'success');
+      enterCompletedState();
       renderQuiz();
     } catch (err) {
       hide(loadingScreen);
@@ -115,7 +117,7 @@ export async function initQuiz() {
         output.style.display = 'block';
       }
       const errMsg = err.message || 'Generation error';
-      output.innerHTML = `<div class="card" style="padding:40px;text-align:center;"><p style="color:var(--color-error);font-weight:600;font-size:1.1rem;">${errMsg}</p></div>`;
+      output.innerHTML = errorStateHtml("We couldn't generate your quiz", errMsg);
       showToast(errMsg, 'error');
       if (fileStatus) {
         fileStatus.textContent = 'Generation failed';
@@ -248,6 +250,7 @@ async function loadHistoryQuiz(fileId) {
     if (questions.length > 0) {
       show(output);
       StudyMateUpload.setFromHistory(fileId);
+      enterCompletedState(true);
       const countEl = document.getElementById('quiz-question-count');
       if (countEl) countEl.textContent = `${questions.length} questions`;
       const container = document.getElementById('quiz-questions');

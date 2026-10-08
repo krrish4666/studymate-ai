@@ -1,0 +1,584 @@
+TASK: P2.1 — Fix post-generation UX state across all AI generation pages.
+
+We are making a focused UX/state-management improvement to StudyMate AI.
+
+The specific problem is visible in the attached screenshot:
+
+After a result has been successfully generated, the page correctly keeps the uploaded/generated file section and the "Change file" option.
+
+However, the generation configuration controls are STILL visible below it.
+
+For example, on Quiz after successful generation, the page still displays:
+
+- Difficulty
+- Questions
+- "Generate Quiz" button
+
+even though the Quiz has already been successfully generated.
+
+This makes the UI look like the generation process is still awaiting input.
+
+WE WANT TO FIX THIS SAME UX PATTERN ACROSS THE ENTIRE APPLICATION.
+
+==================================================
+CORE UX RULE
+==================================================
+
+Every generator page must have two clearly separated UI states:
+
+STATE 1 — BEFORE SUCCESSFUL GENERATION
+
+Show:
+
+- uploaded file / selected file
+- configuration controls
+- generation button
+
+Example for Quiz:
+
+File
+↓
+Difficulty
+Questions
+Generate Quiz
+
+STATE 2 — AFTER SUCCESSFUL GENERATION
+
+Show:
+
+- uploaded/generated file information
+- "Change file" option
+- generated result
+- result-specific actions if they already exist
+
+HIDE:
+
+- generation configuration controls
+- generation button
+- any UI whose only purpose is configuring a NEW generation
+
+Example:
+
+File
+Change file
+
+↓
+
+Quiz result
+
+The page should no longer visually look like it is waiting for generation.
+
+==================================================
+IMPORTANT — THIS IS A STATE CHANGE, NOT A CSS HACK
+==================================================
+
+Do NOT simply use CSS such as:
+
+display: none
+
+based on arbitrary selectors after generation.
+
+The visibility of the configuration UI must be driven by the application's actual generation state.
+
+Find the existing frontend state that determines whether generation:
+
+- has not started
+- is loading
+- has succeeded
+- has failed
+
+Use that existing state wherever possible.
+
+If the current implementation does not have a clean success-state variable, introduce the smallest appropriate frontend state needed.
+
+Do NOT change backend APIs or generation contracts.
+
+==================================================
+FIRST: INSPECT BEFORE MODIFYING
+==================================================
+
+Before making any changes, inspect the existing implementations for:
+
+1. Quiz
+2. Notes
+3. Revision
+4. Flashcards
+5. Mind Map
+
+Identify for each:
+
+- HTML structure
+- relevant JavaScript
+- generation function
+- loading state
+- success state
+- error state
+- configuration controls
+- generation button
+- file/change-file component
+- result rendering
+- existing reset/change-file behavior
+
+Determine whether the pages already use a common pattern.
+
+DO NOT modify anything during this inspection phase.
+
+Then implement the smallest coherent solution.
+
+==================================================
+PAGES TO FIX
+==================================================
+
+At minimum, apply this UX behavior to:
+
+- Quiz
+- Notes
+- Revision
+- Mind Map
+
+Also inspect Flashcards.
+
+If Flashcards follows the same generator architecture and has the same UX problem, apply the same pattern there too.
+
+Do not redesign unrelated pages.
+
+==================================================
+QUIZ
+==================================================
+
+Current problematic state:
+
+After successful Quiz generation:
+
+File section
+Change file
+
+Difficulty
+Questions
+Generate Quiz
+
+Quiz result
+
+Desired state:
+
+File section
+Change file
+
+Quiz result
+
+The following must disappear after successful generation:
+
+- Difficulty selector
+- Questions selector
+- Generate Quiz button
+
+Do NOT hide the uploaded file/change-file section.
+
+The user should still be able to select a different file.
+
+==================================================
+NOTES
+==================================================
+
+Apply exactly the same state model.
+
+Before generation:
+
+File
+configuration/options if applicable
+Generate Notes
+
+After successful generation:
+
+File
+Change file
+
+Notes result
+
+Hide generation-only controls after successful generation.
+
+Do not remove any existing result actions.
+
+Preserve existing Notes SSE streaming behavior.
+
+IMPORTANT:
+
+Do not consider the page "successfully generated" merely because the generation request started.
+
+The generation controls should remain appropriately handled during loading.
+
+Only transition to the completed result state when the existing generation flow has actually completed successfully.
+
+==================================================
+REVISION
+==================================================
+
+Before generation:
+
+File
+configuration/options if applicable
+Generate Revision
+
+After successful generation:
+
+File
+Change file
+
+Revision result
+
+Hide generation-only controls.
+
+Preserve all existing Revision generation behavior.
+
+==================================================
+MIND MAP
+==================================================
+
+Before generation:
+
+File
+configuration/options if applicable
+Generate Mind Map
+
+After successful generation:
+
+File
+Change file
+
+Mind Map result
+
+Hide generation-only controls.
+
+Preserve existing Mind Map rendering.
+
+==================================================
+FLASHCARDS
+==================================================
+
+Inspect Flashcards carefully.
+
+If it has the same pattern:
+
+Before:
+
+File
+configuration
+Generate Flashcards
+
+After:
+
+File
+Change file
+
+Flashcards result
+
+Hide generation-only controls.
+
+If Flashcards already behaves correctly, do not unnecessarily modify it.
+
+==================================================
+CHANGE FILE BEHAVIOR
+==================================================
+
+"Change file" is IMPORTANT.
+
+It must remain available after successful generation.
+
+When the user chooses:
+
+Change file
+
+the page must return to the appropriate pre-generation state.
+
+That means:
+
+- current generated result should be cleared/reset according to the existing application's behavior
+- new file can be selected
+- generation configuration controls become visible again
+- generation button becomes visible again
+- the user can generate a new result
+
+The user must NOT become trapped in the completed state.
+
+Desired lifecycle:
+
+                 ┌──────────────────┐
+                 │  FILE SELECTED   │
+                 └────────┬─────────┘
+                          ↓
+                 ┌──────────────────┐
+                 │ CONFIGURATION    │
+                 │ + GENERATE       │
+                 └────────┬─────────┘
+                          ↓
+                 ┌──────────────────┐
+                 │    GENERATING    │
+                 └────────┬─────────┘
+                          ↓
+                 ┌──────────────────┐
+                 │     SUCCESS      │
+                 │                  │
+                 │ FILE              │
+                 │ CHANGE FILE      │
+                 │ RESULT           │
+                 └────────┬─────────┘
+                          │
+                    Change file
+                          │
+                          ↓
+                 ┌──────────────────┐
+                 │ CONFIGURATION    │
+                 │ + GENERATE       │
+                 └──────────────────┘
+
+==================================================
+LOADING STATE
+==================================================
+
+Do not accidentally hide everything immediately when generation begins.
+
+During generation:
+
+- preserve the appropriate loading/progress UI
+- prevent duplicate generation where the current application already does so
+- keep the UX understandable
+
+Only after successful completion should the page transition to the completed result state.
+
+For Notes/Revision, respect the existing SSE lifecycle.
+
+Do not change the SSE protocol.
+
+Do not change:
+
+- data:
+- [DONE]
+- [ERROR]
+- streaming/parsing logic
+- backend endpoints
+
+Only use the existing successful completion state to transition the UI.
+
+==================================================
+ERROR STATE
+==================================================
+
+If generation fails:
+
+DO NOT leave the page permanently in the completed state.
+
+The user should still be able to retry.
+
+Therefore after an error:
+
+- generation controls should remain available or return to the appropriate generation state
+- error UI should be shown using the existing application pattern
+- user should be able to try again
+
+Desired lifecycle:
+
+Generating
+    ↓
+Error
+    ↓
+Configuration + Generate
+    ↓
+Retry
+
+==================================================
+IMPORTANT EDGE CASE
+==================================================
+
+Do not treat merely having an old/stale result in the DOM as proof of successful generation.
+
+The completed state should be driven by the current generation lifecycle.
+
+If the page is loaded with no result:
+
+→ show generation UI.
+
+If generation starts:
+
+→ show loading state.
+
+If generation succeeds:
+
+→ hide generation UI and show result.
+
+If generation fails:
+
+→ return to generation UI with error state.
+
+If Change File is selected:
+
+→ reset result and return to generation UI.
+
+==================================================
+UI TRANSITION
+==================================================
+
+The transition between states should feel intentional.
+
+When generation succeeds:
+
+- configuration area can smoothly collapse/fade out
+- result area can remain/appear naturally
+
+Keep animation subtle.
+
+Approximately:
+
+150–250ms
+
+Use opacity/height/transform only where appropriate.
+
+Do NOT introduce an animation library.
+
+Do not make the result jump unexpectedly on the page.
+
+If animation would complicate the existing DOM/state implementation, prioritize correct state behavior over animation.
+
+Respect:
+
+prefers-reduced-motion: reduce
+
+==================================================
+DO NOT DUPLICATE LOGIC
+==================================================
+
+Look for the possibility of creating a small reusable frontend pattern/helper for:
+
+- generation state
+- showing/hiding generation controls
+- entering completed state
+- resetting on Change File
+
+However, do NOT force a large abstraction if the existing pages have significantly different implementations.
+
+Prefer the smallest maintainable solution.
+
+The goal is consistency, not unnecessary refactoring.
+
+==================================================
+VISUAL REQUIREMENT
+==================================================
+
+The existing file section is GOOD.
+
+Keep the existing:
+
+- file display
+- file name
+- file size
+- success indicator
+- Change file control
+
+The specific UX improvement is what happens BELOW that section.
+
+After success, the user should immediately see:
+
+FILE
+Change file
+
+↓
+
+RESULT
+
+NOT:
+
+FILE
+Change file
+
+↓
+Difficulty
+Questions
+Generate Quiz
+
+↓
+RESULT
+
+The configuration area belongs to the generation phase, not the completed-result phase.
+
+==================================================
+DO NOT CHANGE
+==================================================
+
+Do NOT modify:
+
+- FastAPI
+- backend APIs
+- authentication
+- JWT
+- Google OAuth
+- database
+- PostgreSQL
+- Redis
+- Celery
+- SSE protocol
+- Gemini generation logic
+- document processing
+- API request/response contracts
+
+This is a frontend UX/state-management change.
+
+==================================================
+VERIFICATION
+==================================================
+
+Test each applicable generator individually.
+
+QUIZ:
+
+1. Open Quiz.
+2. Select/upload a file.
+3. Verify configuration controls are visible.
+4. Verify Generate Quiz is visible.
+5. Generate successfully.
+6. Verify:
+   - file remains visible
+   - Change file remains visible
+   - Quiz result is visible
+   - Difficulty disappears
+   - Questions disappears
+   - Generate Quiz disappears
+7. Click Change file.
+8. Verify configuration controls return.
+9. Verify Generate Quiz returns.
+10. Verify a new file can be selected.
+11. Verify generation works again.
+12. Test generation failure and verify retry remains possible.
+
+Repeat the equivalent lifecycle for:
+
+- Notes
+- Revision
+- Mind Map
+- Flashcards if applicable
+
+For Notes and Revision specifically verify that existing SSE streaming remains unchanged and still progressively renders the result.
+
+==================================================
+SUCCESS CRITERIA
+==================================================
+
+The UX principle should be consistent everywhere:
+
+BEFORE GENERATION:
+
+"Tell StudyMate how you want to generate."
+
+AFTER GENERATION:
+
+"Here is what StudyMate generated."
+
+The completed page should never continue displaying controls whose sole purpose was to create the result that is already being displayed.
+
+The "Change file" action must remain available so the user can intentionally start a new generation flow.
+
+This is a focused P2.1 UX fix.
+
+Do not redesign the pages.
+Do not change their visual identity.
+Do not modify backend functionality.
+
+Fix the generation lifecycle and resulting UI state cleanly and consistently.

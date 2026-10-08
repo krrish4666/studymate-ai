@@ -1,5 +1,5 @@
-import { apiPost, apiGet } from './api.js';
-import { showToast } from './utils.js';
+import { apiPost, apiGet } from './api.js?v=8';
+import { showToast } from './utils.js?v=8';
 
 export function getToken() {
   return localStorage.getItem('studymate-token');

@@ -30,12 +30,11 @@
     if (!el) {
       el = document.createElement('div');
       el.id = 'upload-error';
-      el.style.cssText =
-        'background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;' +
-        'padding:12px 16px;margin-top:12px;color:#b91c1c;font-size:0.9rem;';
+      el.className = 'upload-error';
       var ref = document.getElementById('upload-area') || document.getElementById('dropzone');
       if (ref && ref.parentElement) ref.parentElement.appendChild(el);
     }
+    el.className = 'upload-error';
     el.textContent = msg;
     el.hidden = false;
   }
@@ -71,6 +70,7 @@
 
     var controls = document.getElementById('feature-controls');
     if (controls) {
+      controls.classList.remove('is-fading-out');
       controls.hidden = false;
       controls.style.display = '';
     }
@@ -107,6 +107,7 @@
 
     var controls = document.getElementById('feature-controls');
     if (controls) {
+      controls.classList.remove('is-fading-out');
       controls.hidden = true;
       controls.style.display = 'none';
     }

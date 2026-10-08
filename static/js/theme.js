@@ -1,10 +1,10 @@
 const THEMES = [
-  { id: 'warm-light', name: 'Warm Light', preview: ['#d97706', '#fef9ef'] },
-  { id: 'pure-light', name: 'Pure Light', preview: ['#0284c7', '#f0f9ff'] },
-  { id: 'warm-dark', name: 'Warm Dark', preview: ['#f59e0b', '#1c1917'] },
-  { id: 'slate-dark', name: 'Slate Dark', preview: ['#94a3b8', '#0f172a'] },
-  { id: 'midnight-ambient', name: 'Midnight Ambient', preview: ['#6366f1', '#020617'] },
-  { id: 'forest-ambient', name: 'Forest Ambient', preview: ['#10b981', '#022c22'] },
+  { id: 'warm-light', name: 'Warm Light', preview: ['#0f766e', '#f7f5f1'] },
+  { id: 'pure-light', name: 'Pure Light', preview: ['#0369a1', '#f5f8fb'] },
+  { id: 'warm-dark', name: 'Warm Dark', preview: ['#2dd4bf', '#1b1917'] },
+  { id: 'slate-dark', name: 'Slate Dark', preview: ['#38bdf8', '#0f172a'] },
+  { id: 'midnight-ambient', name: 'Midnight Ambient', preview: ['#818cf8', '#0b1020'] },
+  { id: 'forest-ambient', name: 'Forest Ambient', preview: ['#34d399', '#071f1a'] },
 ];
 
 const STORAGE_KEY = 'studymate-theme';

@@ -5,26 +5,43 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>About — StudyMate AI HUB</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/styles.css">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/styles.css?v=8">
 </head>
 <body>
   <header>
-    <nav class="navbar">
-      <a href="/" class="logo">StudyMate AI</a>
-      <ul class="nav-links">
-        <li><a href="/features">Features</a></li>
-        <li><a href="/about">About</a></li>
-      </ul>
-      <div id="auth-ui" class="nav-actions">
-        <a href="/login" class="btn btn-ghost btn-sm">Sign In</a>
-        <a href="/register" class="btn btn-primary btn-sm">Get Started</a>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <nav class="navbar" aria-label="Main navigation">
+      <a href="/" class="logo">
+        <svg class="logo-mark" width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <path d="M16 7.5 6.5 12l9.5 4.75L25.5 12 16 7.5Z" fill="currentColor"/>
+          <path d="M10 14.75V19c0 1.5 2.75 3 6 3s6-1.5 6-3v-4.25" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M25.5 12v5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        StudyMate AI
+      </a>
+      <div class="nav-menu" id="nav-menu">
+        <ul class="nav-links">
+          <li class="nav-item nav-app"><a href="/feature/notes">Notes</a></li>
+          <li class="nav-item nav-app"><a href="/feature/flashcards">Flashcards</a></li>
+          <li class="nav-item nav-app"><a href="/feature/quiz">Quiz</a></li>
+          <li class="nav-item nav-app"><a href="/feature/mindmap">Mind Map</a></li>
+          <li class="nav-item nav-app"><a href="/feature/revision">Revision</a></li>
+          <li class="nav-item nav-app"><a href="/history">History</a></li>
+          <li class="nav-item nav-guest"><a href="/features">Features</a></li>
+          <li class="nav-item nav-guest"><a href="/about">About</a></li>
+        </ul>
+        <div id="auth-ui" class="nav-actions"></div>
       </div>
-      <button class="mobile-menu-toggle" aria-label="Menu">&#9776;</button>
+      <button class="mobile-menu-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="nav-menu">
+        <svg class="icon-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        <svg class="icon-close" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
     </nav>
   </header>
 
-  <main class="page-container-md">
+  <main class="page-container-md" id="main-content">
     <h1 style="text-align:center;margin-bottom:16px;">About StudyMate AI HUB</h1>
     <p style="text-align:center;color:var(--color-muted-text);margin-bottom:40px;">Transforming how students learn with AI-powered tools</p>
 
@@ -67,6 +84,6 @@
     <p>&copy; 2026 StudyMate AI HUB. Powered by Google Gemini AI.</p>
   </footer>
 
-  <script type="module" src="/static/js/main.js"></script>
+  <script type="module" src="/static/js/main.js?v=8"></script>
 </body>
 </html>

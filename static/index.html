@@ -5,72 +5,373 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>StudyMate AI HUB — Academic Productivity</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tailwindcss/typography@0.5.16/src/index.min.css">
-  <link rel="stylesheet" href="/static/css/styles.css">
-  <script src="https://unpkg.com/lucide@latest" defer></script>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/styles.css?v=8">
 </head>
 <body>
   <header>
-    <nav class="navbar">
-      <a href="/" class="logo">StudyMate AI</a>
-      <ul class="nav-links">
-        <li><a href="/features">Features</a></li>
-        <li><a href="/about">About</a></li>
-      </ul>
-      <div id="auth-ui" class="nav-actions">
-        <a href="/login" class="btn btn-ghost btn-sm">Sign In</a>
-        <a href="/register" class="btn btn-primary btn-sm">Get Started</a>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <nav class="navbar" aria-label="Main navigation">
+      <a href="/" class="logo">
+        <svg class="logo-mark" width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <path d="M16 7.5 6.5 12l9.5 4.75L25.5 12 16 7.5Z" fill="currentColor"/>
+          <path d="M10 14.75V19c0 1.5 2.75 3 6 3s6-1.5 6-3v-4.25" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M25.5 12v5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        StudyMate AI
+      </a>
+      <div class="nav-menu" id="nav-menu">
+        <ul class="nav-links">
+          <li class="nav-item nav-guest"><a href="/features">Features</a></li>
+          <li class="nav-item nav-guest nav-home"><a href="/about">About</a></li>
+        </ul>
+        <div id="auth-ui" class="nav-actions"></div>
       </div>
-      <button class="mobile-menu-toggle" aria-label="Menu">&#9776;</button>
+      <button class="mobile-menu-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="nav-menu">
+        <svg class="icon-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        <svg class="icon-close" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
     </nav>
   </header>
 
-  <main>
-    <section style="text-align:center;padding:80px 24px 60px;max-width:800px;margin:0 auto;">
-      <h1 style="font-size:3rem;margin-bottom:16px;">Study Smarter with AI</h1>
-      <p style="font-size:1.15rem;color:var(--color-muted-text);margin-bottom:32px;max-width:600px;margin-left:auto;margin-right:auto;">
-        Transform your notes, PDFs, and lecture slides into interactive flashcards, quizzes, mind maps, and more — powered by Google Gemini AI.
-      </p>
-      <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;">
-        <a href="/register" class="btn btn-primary btn-lg">Get Started Free</a>
-        <a href="/features" class="btn btn-secondary btn-lg">Explore Features</a>
+  <main id="main-content">
+    <!-- Guest landing -->
+    <section id="hero-guest">
+      <div class="hero">
+        <h1 class="hero-title">Study smarter with AI</h1>
+        <p class="hero-text">
+          Transform your notes, PDFs, and lecture slides into interactive flashcards,
+          quizzes, mind maps, and more — powered by Google Gemini AI.
+        </p>
+        <div class="hero-actions">
+          <a href="/register" class="btn btn-primary btn-lg">Get Started Free</a>
+          <a href="/features" class="btn btn-secondary btn-lg">Explore Features</a>
+        </div>
+      </div>
+
+      <div class="page-container">
+        <div class="feature-grid">
+          <a href="/feature/notes" class="card feature-card">
+            <span class="feature-card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4Z"/><path d="M8 7h8"/><path d="M8 11h8"/><path d="M8 15h5"/></svg>
+            </span>
+            <h3>Smart Notes</h3>
+            <p>Convert files into structured markdown notes with AI</p>
+          </a>
+          <a href="/feature/flashcards" class="card feature-card">
+            <span class="feature-card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83L12.83 2.18Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg>
+            </span>
+            <h3>Flashcards</h3>
+            <p>Generate Q&amp;A flashcards from any study material</p>
+          </a>
+          <a href="/feature/quiz" class="card feature-card">
+            <span class="feature-card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+            </span>
+            <h3>MCQ Quizzes</h3>
+            <p>Test yourself with AI-generated multiple choice questions</p>
+          </a>
+          <a href="/feature/mindmap" class="card feature-card">
+            <span class="feature-card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4"/><path d="m15.4 6.5-6.8 4"/></svg>
+            </span>
+            <h3>Mind Maps</h3>
+            <p>Visualize concepts with interactive hierarchical mind maps</p>
+          </a>
+          <a href="/feature/revision" class="card feature-card">
+            <span class="feature-card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            </span>
+            <h3>Revision Sheets</h3>
+            <p>Get concise cheat sheets for quick exam revision</p>
+          </a>
+          <a href="/history" class="card feature-card">
+            <span class="feature-card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+            </span>
+            <h3>Session History</h3>
+            <p>Review and export everything you've generated so far</p>
+          </a>
+        </div>
       </div>
     </section>
 
-    <section class="page-container">
-      <div class="grid grid-3" style="gap:24px;">
-        <a href="/feature/notes" class="card" style="text-align:center;">
-          <div style="font-size:2.5rem;margin-bottom:12px;">&#128221;</div>
-          <h3>Smart Notes</h3>
-          <p style="color:var(--color-muted-text);font-size:0.9rem;">Convert files into structured markdown notes with AI</p>
-        </a>
-        <a href="/feature/flashcards" class="card" style="text-align:center;">
-          <div style="font-size:2.5rem;margin-bottom:12px;">&#128451;</div>
-          <h3>Flashcards</h3>
-          <p style="color:var(--color-muted-text);font-size:0.9rem;">Generate Q&A flashcards from any study material</p>
-        </a>
-        <a href="/feature/quiz" class="card" style="text-align:center;">
-          <div style="font-size:2.5rem;margin-bottom:12px;">&#128221;</div>
-          <h3>MCQ Quizzes</h3>
-          <p style="color:var(--color-muted-text);font-size:0.9rem;">Test yourself with AI-generated multiple choice questions</p>
-        </a>
-        <a href="/feature/mindmap" class="card" style="text-align:center;">
-          <div style="font-size:2.5rem;margin-bottom:12px;">&#129504;</div>
-          <h3>Mind Maps</h3>
-          <p style="color:var(--color-muted-text);font-size:0.9rem;">Visualize concepts with interactive hierarchical mind maps</p>
-        </a>
-        <a href="/feature/revision" class="card" style="text-align:center;">
-          <div style="font-size:2.5rem;margin-bottom:12px;">&#128203;</div>
-          <h3>Revision Sheets</h3>
-          <p style="color:var(--color-muted-text);font-size:0.9rem;">Get concise cheat sheets for quick exam revision</p>
-        </a>
-        <a href="/history" class="card" style="text-align:center;">
-          <div style="font-size:2.5rem;margin-bottom:12px;">&#128196;</div>
-          <h3>PDF Export</h3>
-          <p style="color:var(--color-muted-text);font-size:0.9rem;">Export any content as beautifully formatted PDFs</p>
-        </a>
+    <!-- Dashboard (authenticated) -->
+    <section id="dashboard" class="page-container" aria-labelledby="dashboard-greeting">
+
+      <!-- Hero -->
+      <div class="dashboard-hero">
+        <div class="dash-hero-copy">
+          <p class="dash-hero-eyebrow" id="dashboard-eyebrow">Good evening</p>
+          <h1 class="dash-hero-title" id="dashboard-greeting">Welcome back</h1>
+          <p class="dash-hero-lede">
+            Turn your study material into notes, flashcards, quizzes,
+            mind maps and more — all in one place.
+          </p>
+        </div>
+
+        <div class="dash-hero-visual">
+          <div class="dash-hero-art" role="presentation" aria-hidden="true">
+            <svg viewBox="0 0 480 420" focusable="false">
+              <!-- ground shadow -->
+              <ellipse cx="238" cy="376" rx="184" ry="24" class="art-ground"/>
+
+              <!-- tablet / study screen -->
+              <g>
+                <rect x="140" y="52" width="224" height="244" rx="18" class="surface"/>
+                <rect x="160" y="72" width="184" height="176" rx="10" class="screen"/>
+                <rect x="176" y="90" width="86" height="12" rx="6" class="accent-solid"/>
+                <rect x="176" y="114" width="152" height="8" rx="4" class="art-line"/>
+                <rect x="176" y="132" width="132" height="8" rx="4" class="art-line"/>
+                <rect x="176" y="150" width="146" height="8" rx="4" class="art-line"/>
+                <rect x="176" y="170" width="104" height="22" rx="7" class="accent-tint"/>
+                <rect x="176" y="202" width="152" height="8" rx="4" class="art-line"/>
+                <rect x="176" y="220" width="118" height="8" rx="4" class="art-line"/>
+                <rect x="214" y="262" width="56" height="6" rx="3" class="art-line"/>
+              </g>
+
+              <!-- floating document card -->
+              <g>
+                <rect x="322" y="22" width="102" height="72" rx="12" class="surface"/>
+                <circle cx="373" cy="58" r="16" class="accent-solid"/>
+                <path d="m365 58 6 6 10 -12" class="check"/>
+              </g>
+
+              <!-- stacked books -->
+              <g>
+                <rect x="44" y="318" width="150" height="26" rx="8" class="book-a"/>
+                <rect x="58" y="292" width="138" height="26" rx="8" class="book-b"/>
+                <rect x="50" y="266" width="118" height="26" rx="8" class="book-c"/>
+              </g>
+
+              <!-- plant -->
+              <g>
+                <path d="M372 374v-36" class="stem"/>
+                <path d="M372 346c-26-4-42-22-44-44 24 0 42 16 44 44Z" class="leaf-a"/>
+                <path d="M372 346c26-6 40-24 40-46-24 2-40 20-40 46Z" class="leaf-b"/>
+                <path d="M356 374h32l-4 28h-24Z" class="pot"/>
+              </g>
+
+              <!-- sparkles -->
+              <circle cx="92" cy="92" r="5" class="accent-tint"/>
+              <circle cx="438" cy="146" r="4" class="accent-tint"/>
+              <circle cx="62" cy="204" r="3.5" class="accent-tint"/>
+            </svg>
+          </div>
+
+          <div class="dash-hero-callouts" aria-hidden="true">
+            <span class="dash-hero-callout" style="--i:0">
+              <span class="hero-callout-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4Z"/><path d="M8 7h8"/><path d="M8 11h8"/><path d="M8 15h5"/></svg>
+              </span>
+              <span class="hero-callout-text">
+                <strong>Understand</strong>
+                <span>with clear notes</span>
+              </span>
+            </span>
+            <span class="dash-hero-callout" style="--i:1">
+              <span class="hero-callout-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+              </span>
+              <span class="hero-callout-text">
+                <strong>Practice</strong>
+                <span>with quizzes</span>
+              </span>
+            </span>
+            <span class="dash-hero-callout" style="--i:2">
+              <span class="hero-callout-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4"/><path d="m15.4 6.5-6.8 4"/></svg>
+              </span>
+              <span class="hero-callout-text">
+                <strong>Visualize</strong>
+                <span>with mind maps</span>
+              </span>
+            </span>
+            <span class="dash-hero-callout" style="--i:3">
+              <span class="hero-callout-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+              </span>
+              <span class="hero-callout-text">
+                <strong>Revise</strong>
+                <span>with focused sheets</span>
+              </span>
+            </span>
+          </div>
+        </div>
       </div>
+
+      <!-- Study smarter -->
+      <section class="tools" aria-labelledby="tools-title">
+        <div class="tools-head">
+          <h2 class="tools-title" id="tools-title">Study smarter</h2>
+          <p class="tools-sub">Choose a tool to work with your study material.</p>
+        </div>
+
+        <div class="tool-grid">
+          <a class="tool-card" href="/feature/notes">
+            <span class="tool-card-top">
+              <span class="tool-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4Z"/><path d="M8 7h8"/><path d="M8 11h8"/><path d="M8 15h5"/></svg>
+              </span>
+              <span class="tool-arrow" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+              </span>
+            </span>
+            <h3 class="tool-card-title">Notes</h3>
+            <span class="tool-card-desc">Turn your material into structured, easy to read study notes.</span>
+            <span class="tool-card-art" aria-hidden="true">
+              <svg viewBox="0 0 130 100" focusable="false">
+                <rect x="30" y="8" width="70" height="84" rx="9" class="art-surface"/>
+                <rect x="42" y="22" width="46" height="8" rx="4" class="art-accent"/>
+                <rect x="42" y="38" width="46" height="6" rx="3" class="art-line"/>
+                <rect x="42" y="52" width="34" height="6" rx="3" class="art-line"/>
+                <rect x="42" y="66" width="40" height="6" rx="3" class="art-line"/>
+              </svg>
+            </span>
+          </a>
+
+          <a class="tool-card" href="/feature/flashcards">
+            <span class="tool-card-top">
+              <span class="tool-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83L12.83 2.18Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg>
+              </span>
+              <span class="tool-arrow" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+              </span>
+            </span>
+            <h3 class="tool-card-title">Flashcards</h3>
+            <span class="tool-card-desc">Generate active recall flashcards to remember key concepts.</span>
+            <span class="tool-card-art" aria-hidden="true">
+              <svg viewBox="0 0 130 100" focusable="false">
+                <g transform="rotate(-7 48 40)">
+                  <rect x="18" y="18" width="62" height="44" rx="9" class="art-surface"/>
+                  <rect x="32" y="34" width="34" height="7" rx="3.5" class="art-line"/>
+                </g>
+                <g transform="rotate(5 82 62)">
+                  <rect x="50" y="40" width="62" height="44" rx="9" class="art-surface"/>
+                  <rect x="64" y="56" width="34" height="7" rx="3.5" class="art-accent"/>
+                </g>
+              </svg>
+            </span>
+          </a>
+
+          <a class="tool-card" href="/feature/quiz">
+            <span class="tool-card-top">
+              <span class="tool-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+              </span>
+              <span class="tool-arrow" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+              </span>
+            </span>
+            <h3 class="tool-card-title">Quiz</h3>
+            <span class="tool-card-desc">Test your knowledge with AI-generated quizzes.</span>
+            <span class="tool-card-art" aria-hidden="true">
+              <svg viewBox="0 0 130 100" focusable="false">
+                <rect x="28" y="10" width="74" height="80" rx="11" class="art-surface"/>
+                <path d="M44 34l6 7 11-13" class="art-accent-stroke"/>
+                <rect x="66" y="34" width="24" height="7" rx="3.5" class="art-line"/>
+                <path d="M44 58l6 7 11-13" class="art-accent-stroke"/>
+                <rect x="66" y="58" width="24" height="7" rx="3.5" class="art-line"/>
+              </svg>
+            </span>
+          </a>
+
+          <a class="tool-card" href="/feature/mindmap">
+            <span class="tool-card-top">
+              <span class="tool-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4"/><path d="m15.4 6.5-6.8 4"/></svg>
+              </span>
+              <span class="tool-arrow" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+              </span>
+            </span>
+            <h3 class="tool-card-title">Mind Map</h3>
+            <span class="tool-card-desc">Visualize complex concepts with interactive mind maps.</span>
+            <span class="tool-card-art" aria-hidden="true">
+              <svg viewBox="0 0 130 100" focusable="false">
+                <path d="M35 50h19 M70 50h27 M62 29v13 M62 58v13" class="art-line-stroke"/>
+                <circle cx="26" cy="50" r="9" class="art-accent"/>
+                <circle cx="62" cy="50" r="8" class="art-surface"/>
+                <circle cx="62" cy="22" r="7" class="art-accent-soft"/>
+                <circle cx="62" cy="78" r="7" class="art-accent-soft"/>
+                <circle cx="104" cy="50" r="7" class="art-accent"/>
+              </svg>
+            </span>
+          </a>
+
+          <a class="tool-card" href="/feature/revision">
+            <span class="tool-card-top">
+              <span class="tool-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+              </span>
+              <span class="tool-arrow" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+              </span>
+            </span>
+            <h3 class="tool-card-title">Revision</h3>
+            <span class="tool-card-desc">Get concise revision sheets for quick exam prep.</span>
+            <span class="tool-card-art" aria-hidden="true">
+              <svg viewBox="0 0 130 100" focusable="false">
+                <path d="M65 24c-11-7-25-8-37-4v46c12-4 26-3 37 4Z" class="art-surface"/>
+                <path d="M65 24c11-7 25-8 37-4v46c-12-4-26-3-37 4Z" class="art-surface"/>
+                <path d="M65 24v46" class="art-line-stroke"/>
+                <rect x="32" y="42" width="20" height="7" rx="3.5" class="art-accent"/>
+                <rect x="78" y="42" width="20" height="7" rx="3.5" class="art-line"/>
+              </svg>
+            </span>
+          </a>
+        </div>
+      </section>
+
+      <!-- History -->
+      <a class="history-banner" href="/history">
+        <span class="history-banner-copy">
+          <span class="history-banner-head">
+            <span class="tool-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+            </span>
+            <span class="history-banner-title">History</span>
+            <span class="tool-arrow" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+            </span>
+          </span>
+          <span class="history-banner-desc">View and revisit your past sessions and generated study material.</span>
+        </span>
+
+        <span class="history-banner-files" aria-hidden="true">
+          <span class="history-file">
+            <span class="history-file-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h6"/></svg>
+            </span>
+            <span class="history-file-name">Physics_Notes.pdf</span>
+            <span class="history-file-tag">Notes</span>
+          </span>
+          <span class="history-file">
+            <span class="history-file-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h6"/></svg>
+            </span>
+            <span class="history-file-name">DBMS_Flashcards.pdf</span>
+            <span class="history-file-tag">Flashcards</span>
+          </span>
+          <span class="history-file">
+            <span class="history-file-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h6"/></svg>
+            </span>
+            <span class="history-file-name">ML_Quiz.pdf</span>
+            <span class="history-file-tag">Quiz</span>
+          </span>
+          <span class="history-file">
+            <span class="history-file-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h6"/></svg>
+            </span>
+            <span class="history-file-name">OS_MindMap.pdf</span>
+            <span class="history-file-tag">Mind Map</span>
+          </span>
+        </span>
+      </a>
     </section>
 
     <footer class="footer">
@@ -78,6 +379,6 @@
     </footer>
   </main>
 
-  <script type="module" src="/static/js/main.js"></script>
+  <script type="module" src="/static/js/main.js?v=8"></script>
 </body>
 </html>
